@@ -1,0 +1,37 @@
+{
+    "name": "OnlineResources",
+    "alias": "online-resources",
+    "composer_package": "koakademy/online-resources",
+    "version": "1.0.0",
+    "description": "Categorized online resource directory with permanent QR codes, printable posters, school-wide hubs, and extensible class resource scopes.",
+    "author": "KoAkademy contributors",
+    "license": "AGPL-3.0-or-later",
+    "requires": {
+        "core": ">=1.22.0",
+        "php": ">=8.5 <8.6",
+        "modules": {}
+    },
+    "compatibility": {
+        "laravel": "^13.0",
+        "filament": "^5.0"
+    },
+    "keywords": [
+        "online-resources",
+        "qr-code",
+        "directory",
+        "class-resources",
+        "student-portal"
+    ],
+    "permissions": [
+        "online-resources.view",
+        "online-resources.manage",
+        "online-resources.export-qr"
+    ],
+    "priority": 0,
+    "providers": [
+        "Modules\\OnlineResources\\Providers\\OnlineResourcesServiceProvider"
+    ],
+    "files": [],
+    "repository": "https://github.com/yukazakiri/koakademy-module-online-resources",
+    "homepage": "https://github.com/yukazakiri/koakademy-module-online-resources"
+}

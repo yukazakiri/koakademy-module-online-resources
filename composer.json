@@ -1,0 +1,53 @@
+{
+    "name": "koakademy/online-resources",
+    "description": "Categorized online resources and permanent QR code quick-access hub for KoAkademy schools, classes, and student portals.",
+    "type": "library",
+    "license": "AGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "KoAkademy contributors"
+        }
+    ],
+    "require": {
+        "php": ">=8.5 <8.6",
+        "endroid/qr-code": "^6.0",
+        "inertiajs/inertia-laravel": "^3.0",
+        "laravel/framework": "^13.0",
+        "nwidart/laravel-modules": "^13.0",
+        "spatie/laravel-pdf": "^2.2"
+    },
+    "require-dev": {
+        "laravel/pint": "^1.24",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^5.0",
+        "pestphp/pest-plugin-laravel": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\OnlineResources\\": "app/",
+            "Modules\\OnlineResources\\Database\\Factories\\": "database/factories/",
+            "Modules\\OnlineResources\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\OnlineResources\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\OnlineResources\\Providers\\OnlineResourcesServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "wikimedia/composer-merge-plugin": true
+        }
+    },
+    "scripts": {
+        "test": "pest --compact"
+    }
+}
