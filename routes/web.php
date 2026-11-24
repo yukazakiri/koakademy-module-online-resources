@@ -53,6 +53,10 @@ Route::middleware($adminMiddleware)
         Route::delete('/categories/{category}', [AdministratorOnlineResourceController::class, 'destroyCategory'])->name('categories.destroy');
         Route::patch('/categories/reorder', [AdministratorOnlineResourceController::class, 'reorderCategories'])->name('categories.reorder');
 
+        Route::post('/links/metadata', [AdministratorOnlineResourceController::class, 'fetchLinkMetadata'])
+            ->middleware('throttle:30,1')
+            ->name('links.metadata');
+
         Route::post('/categories/{category}/links', [AdministratorOnlineResourceController::class, 'storeLink'])->name('links.store');
         Route::put('/links/{link}', [AdministratorOnlineResourceController::class, 'updateLink'])->name('links.update');
         Route::delete('/links/{link}', [AdministratorOnlineResourceController::class, 'destroyLink'])->name('links.destroy');
@@ -75,6 +79,10 @@ Route::middleware($facultyMiddleware)
         Route::put('/categories/{category}', [FacultyClassOnlineResourceController::class, 'updateCategory'])->name('categories.update');
         Route::delete('/categories/{category}', [FacultyClassOnlineResourceController::class, 'destroyCategory'])->name('categories.destroy');
         Route::patch('/categories/reorder', [FacultyClassOnlineResourceController::class, 'reorderCategories'])->name('categories.reorder');
+
+        Route::post('/links/metadata', [FacultyClassOnlineResourceController::class, 'fetchLinkMetadata'])
+            ->middleware('throttle:30,1')
+            ->name('links.metadata');
 
         Route::post('/categories/{category}/links', [FacultyClassOnlineResourceController::class, 'storeLink'])->name('links.store');
         Route::put('/links/{link}', [FacultyClassOnlineResourceController::class, 'updateLink'])->name('links.update');

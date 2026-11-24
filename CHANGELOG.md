@@ -2,6 +2,12 @@
 
 All notable changes to `koakademy/online-resources` will be documented in this file.
 
+## v1.1.0 - 2026-11-25
+
+### Added
+- Automatic link title detection when adding resources to a category: pastes or typed URLs automatically fetch the target page title (`og:title` / `twitter:title` / `<title>` or `Content-Disposition` filename) via SSRF-hardened metadata endpoints (`POST /administrators/online-resources/links/metadata` and `POST /faculty/classes/{class}/resources/links/metadata`), with instant URL-derived fallback titles and a manual **Auto-fill from URL** trigger that never overwrites manually edited titles.
+- Placed the **URL** field first in `ResourceLinkDialog` for a faster paste-and-save workflow.
+
 ## v1.0.0 - 2026-11-24
 
 ### Added

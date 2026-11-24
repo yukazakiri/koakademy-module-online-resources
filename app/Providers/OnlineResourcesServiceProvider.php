@@ -12,6 +12,7 @@ use Modules\OnlineResources\Models\OnlineResourceCategory;
 use Modules\OnlineResources\Policies\OnlineResourceCategoryPolicy;
 use Modules\OnlineResources\Scopes\ClassResourceScope;
 use Modules\OnlineResources\Scopes\SchoolResourceScope;
+use Modules\OnlineResources\Services\OnlineResourceMetadataService;
 use Modules\OnlineResources\Services\OnlineResourceQrService;
 use Modules\OnlineResources\Services\OnlineResourceScopeRegistry;
 use Modules\OnlineResources\Services\OnlineResourceService;
@@ -37,6 +38,7 @@ final class OnlineResourcesServiceProvider extends ServiceProvider
             return $registry;
         });
 
+        $this->app->singleton(OnlineResourceMetadataService::class);
         $this->app->singleton(OnlineResourceQrService::class);
         $this->app->singleton(OnlineResourceService::class);
 

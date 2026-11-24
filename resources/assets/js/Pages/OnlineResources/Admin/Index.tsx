@@ -57,6 +57,7 @@ export default function AdministratorOnlineResourcesIndex({
             updateLink: (linkId: number) => `/administrators/online-resources/links/${linkId}`,
             destroyLink: (linkId: number) => `/administrators/online-resources/links/${linkId}`,
             reorderLinks: (categoryId: number) => `/administrators/online-resources/categories/${categoryId}/links/reorder`,
+            fetchLinkMetadata: "/administrators/online-resources/links/metadata",
         }),
         [],
     );

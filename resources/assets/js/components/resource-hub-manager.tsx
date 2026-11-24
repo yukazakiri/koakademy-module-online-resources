@@ -50,6 +50,7 @@ export interface ResourceHubEndpoints {
     updateLink: (linkId: number) => string;
     destroyLink: (linkId: number) => string;
     reorderLinks: (categoryId: number) => string;
+    fetchLinkMetadata?: string;
 }
 
 interface ResourceHubManagerProps {
@@ -581,6 +582,7 @@ export function ResourceHubManager({
                 onOpenChange={setLinkDialogOpen}
                 categoryName={linkTargetCategory?.name ?? ""}
                 link={editingLink}
+                metadataUrl={endpoints.fetchLinkMetadata}
                 submitting={submitting}
                 onSubmit={handleLinkSubmit}
             />

@@ -38,6 +38,7 @@ export function ClassResourcesTab({
             updateLink: (linkId: number) => `/faculty/classes/${classId}/resources/links/${linkId}`,
             destroyLink: (linkId: number) => `/faculty/classes/${classId}/resources/links/${linkId}`,
             reorderLinks: (categoryId: number) => `/faculty/classes/${classId}/resources/categories/${categoryId}/links/reorder`,
+            fetchLinkMetadata: `/faculty/classes/${classId}/resources/links/metadata`,
         }),
         [classId],
     );

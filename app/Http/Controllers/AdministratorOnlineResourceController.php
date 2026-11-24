@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Models\Scopes\SchoolScope;
 use App\Models\User;
 use App\Services\TenantContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -15,6 +16,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
+use Modules\OnlineResources\Http\Requests\FetchOnlineResourceMetadataRequest;
 use Modules\OnlineResources\Http\Requests\ReorderOnlineResourcesRequest;
 use Modules\OnlineResources\Http\Requests\StoreOnlineResourceCategoryRequest;
 use Modules\OnlineResources\Http\Requests\StoreOnlineResourceLinkRequest;
@@ -22,6 +24,7 @@ use Modules\OnlineResources\Http\Requests\UpdateOnlineResourceCategoryRequest;
 use Modules\OnlineResources\Http\Requests\UpdateOnlineResourceLinkRequest;
 use Modules\OnlineResources\Models\OnlineResourceCategory;
 use Modules\OnlineResources\Models\OnlineResourceLink;
+use Modules\OnlineResources\Services\OnlineResourceMetadataService;
 use Modules\OnlineResources\Services\OnlineResourceQrService;
 use Modules\OnlineResources\Services\OnlineResourceScopeRegistry;
 use Modules\OnlineResources\Services\OnlineResourceService;
@@ -34,6 +37,7 @@ final class AdministratorOnlineResourceController extends Controller
         private readonly OnlineResourceQrService $qr,
         private readonly OnlineResourceScopeRegistry $scopes,
         private readonly TenantContext $tenantContext,
+        private readonly OnlineResourceMetadataService $metadata,
     ) {}
 
     public function index(Request $request): Response
@@ -126,6 +130,18 @@ final class AdministratorOnlineResourceController extends Controller
         $this->service->reorderCategories($school, $orderedIds);
 
         return redirect()->back();
+    }
+
+    public function fetchLinkMetadata(FetchOnlineResourceMetadataRequest $request): JsonResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $school]);
+
+        return response()->json(
+            $this->metadata->resolve((string) $request->validated('url')),
+        );
     }
 
     public function storeLink(StoreOnlineResourceLinkRequest $request, int $category): RedirectResponse
