@@ -234,3 +234,20 @@ it('enforces visibility filtering for guests on authenticated categories', funct
     $this->get(route('online-resources.qr.go', ['shortCode' => $link->short_code]))
         ->assertRedirect('/login');
 });
+
+it('increments link click counts atomically across repeated visits', function (): void {
+    $service = app(OnlineResourceService::class);
+
+    $category = $service->createCategory($this->school, ['name' => 'Atomic Clicks']);
+    $link = $service->createLink($category, [
+        'title' => 'Campus Portal',
+        'url' => 'https://portal.example.edu',
+    ]);
+
+    $this->get(route('online-resources.qr.go', ['shortCode' => $link->short_code]))->assertRedirect('https://portal.example.edu');
+    $this->get(route('online-resources.qr.go', ['shortCode' => $link->short_code]))->assertRedirect('https://portal.example.edu');
+    $this->get(route('online-resources.qr.go', ['shortCode' => $link->short_code]))->assertRedirect('https://portal.example.edu');
+
+    expect($link->fresh()->click_count)->toBe(3)
+        ->and($link->fresh()->last_clicked_at)->not->toBeNull();
+});

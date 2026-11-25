@@ -136,7 +136,7 @@ export default function StudentOnlineResourcesIndex({
                                             )}
                                         </div>
                                         <Link
-                                            href={`${group.class_url}?tab=resources`}
+                                            href={group.class_url}
                                             className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit gap-1.5 rounded-xl" })}
                                         >
                                             Open Class

@@ -91,6 +91,7 @@ final class PublicOnlineResourceController extends Controller
                 ->all(),
             'hubUrl' => $this->qr->schoolHubUrl($school),
             'isAuthenticated' => $viewer instanceof Authenticatable,
+            'portalUrl' => $viewer instanceof Authenticatable ? $this->resolvePortalUrl($viewer) : null,
         ]);
     }
 
@@ -160,6 +161,7 @@ final class PublicOnlineResourceController extends Controller
                 ->all(),
             'hubUrl' => $headerMeta['hub_url'],
             'isAuthenticated' => $viewer instanceof Authenticatable,
+            'portalUrl' => $viewer instanceof Authenticatable ? $this->resolvePortalUrl($viewer) : null,
         ]);
     }
 
@@ -198,13 +200,32 @@ final class PublicOnlineResourceController extends Controller
 
         OnlineResourceLink::withoutSchoolScope()
             ->whereKey($link->id)
-            ->update([
-                'click_count' => $link->click_count + 1,
+            ->increment('click_count', 1, [
                 'last_clicked_at' => now(),
             ]);
 
         return redirect()
             ->away($link->url)
             ->header('Referrer-Policy', 'no-referrer');
+    }
+
+    private function resolvePortalUrl(Authenticatable $viewer): string
+    {
+        if (method_exists($viewer, 'isStudentRole') && (bool) $viewer->isStudentRole()) {
+            return '/student/resources';
+        }
+
+        if (method_exists($viewer, 'isFaculty') && (bool) $viewer->isFaculty()) {
+            return '/faculty/dashboard';
+        }
+
+        if (
+            (method_exists($viewer, 'isAdministrative') && (bool) $viewer->isAdministrative())
+            || (bool) ($viewer->is_super_admin ?? false)
+        ) {
+            return '/administrators/online-resources';
+        }
+
+        return '/dashboard';
     }
 }

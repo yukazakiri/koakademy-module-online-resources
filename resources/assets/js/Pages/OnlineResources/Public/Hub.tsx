@@ -13,6 +13,7 @@ interface PublicOnlineResourcesHubProps {
     categories: OnlineResourceCategoryItem[];
     hubUrl: string | null;
     isAuthenticated: boolean;
+    portalUrl?: string | null;
 }
 
 export default function PublicOnlineResourcesHub({
@@ -21,6 +22,7 @@ export default function PublicOnlineResourcesHub({
     categories,
     hubUrl,
     isAuthenticated,
+    portalUrl,
 }: PublicOnlineResourcesHubProps) {
     const [copied, setCopied] = useState(false);
 
@@ -60,7 +62,7 @@ export default function PublicOnlineResourcesHub({
 
                         {isAuthenticated ? (
                             <Link
-                                href="/student/resources"
+                                href={portalUrl || "/student/resources"}
                                 className={buttonVariants({ size: "sm", className: "h-8 gap-1.5 rounded-full text-xs" })}
                             >
                                 <ExternalLink className="size-3.5" />
