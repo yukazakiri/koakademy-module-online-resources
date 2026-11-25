@@ -65,6 +65,8 @@ Route::middleware($adminMiddleware)
         Route::get('/categories/{category}/qr.svg', [AdministratorOnlineResourceController::class, 'categoryQrSvg'])->name('categories.qr.svg');
         Route::get('/categories/{category}/qr.png', [AdministratorOnlineResourceController::class, 'categoryQrPng'])->name('categories.qr.png');
         Route::get('/categories/{category}/poster.pdf', [AdministratorOnlineResourceController::class, 'categoryPosterPdf'])->name('categories.poster.pdf');
+        Route::get('/links/{link}/qr.svg', [AdministratorOnlineResourceController::class, 'linkQrSvg'])->name('links.qr.svg');
+        Route::get('/links/{link}/qr.png', [AdministratorOnlineResourceController::class, 'linkQrPng'])->name('links.qr.png');
         Route::get('/hub/qr.svg', [AdministratorOnlineResourceController::class, 'hubQrSvg'])->name('hub.qr.svg');
         Route::get('/hub/qr.png', [AdministratorOnlineResourceController::class, 'hubQrPng'])->name('hub.qr.png');
         Route::get('/sheet.pdf', [AdministratorOnlineResourceController::class, 'sheetPdf'])->name('sheet.pdf');
@@ -93,6 +95,8 @@ Route::middleware($facultyMiddleware)
         Route::get('/categories/{category}/qr.svg', [FacultyClassOnlineResourceController::class, 'categoryQrSvg'])->name('categories.qr.svg');
         Route::get('/categories/{category}/qr.png', [FacultyClassOnlineResourceController::class, 'categoryQrPng'])->name('categories.qr.png');
         Route::get('/categories/{category}/poster.pdf', [FacultyClassOnlineResourceController::class, 'categoryPosterPdf'])->name('categories.poster.pdf');
+        Route::get('/links/{link}/qr.svg', [FacultyClassOnlineResourceController::class, 'linkQrSvg'])->name('links.qr.svg');
+        Route::get('/links/{link}/qr.png', [FacultyClassOnlineResourceController::class, 'linkQrPng'])->name('links.qr.png');
     });
 
 // Student Portal Online Resources Hub

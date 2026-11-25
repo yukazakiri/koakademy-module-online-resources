@@ -251,3 +251,31 @@ it('increments link click counts atomically across repeated visits', function ()
     expect($link->fresh()->click_count)->toBe(3)
         ->and($link->fresh()->last_clicked_at)->not->toBeNull();
 });
+
+it('serializes direct single-link QR URLs and supports moving links with custom icons across categories', function (): void {
+    $service = app(OnlineResourceService::class);
+    $qr = app(OnlineResourceQrService::class);
+
+    $first = $service->createCategory($this->school, ['name' => 'Forms']);
+    $second = $service->createCategory($this->school, ['name' => 'Guides']);
+    $link = $service->createLink($first, [
+        'title' => 'Registrar Request Form',
+        'url' => 'https://docs.google.com/forms/d/e/test/viewform',
+        'icon' => 'document',
+    ]);
+
+    $serialized = $service->serializeCategory($first, onlyActiveLinks: false, includeAdminMeta: true);
+
+    expect($serialized['links'][0]['icon'])->toBe('document')
+        ->and($serialized['links'][0]['qr_url'])->toBe($qr->directLinkQrUrl($link))
+        ->and($serialized['links'][0]['qr_svg_url'])->toContain('/links/'.$link->id.'/qr.svg')
+        ->and($serialized['links'][0]['qr_png_url'])->toContain('/links/'.$link->id.'/qr.png');
+
+    $moved = $service->updateLink($link, [
+        'category_id' => $second->id,
+        'icon' => 'book',
+    ]);
+
+    expect($moved->category_id)->toBe($second->id)
+        ->and($moved->icon)->toBe('book');
+});

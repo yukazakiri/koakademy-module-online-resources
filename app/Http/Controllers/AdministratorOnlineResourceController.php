@@ -255,6 +255,36 @@ final class AdministratorOnlineResourceController extends Controller
         return $this->qr->categoryPosterPdf($model, $headerMeta);
     }
 
+    public function linkQrSvg(Request $request, int $link): HttpResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('exportQr', [OnlineResourceCategory::class, $school]);
+
+        $model = $this->findSchoolLink($school, $link);
+
+        return $this->qr->svgResponse(
+            url: $this->qr->directLinkQrUrl($model),
+            filename: $school->code.'-'.$model->title.'-qr',
+        );
+    }
+
+    public function linkQrPng(Request $request, int $link): HttpResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('exportQr', [OnlineResourceCategory::class, $school]);
+
+        $model = $this->findSchoolLink($school, $link);
+
+        return $this->qr->pngDownloadResponse(
+            url: $this->qr->directLinkQrUrl($model),
+            filename: $school->code.'-'.$model->title.'-qr',
+        );
+    }
+
     public function hubQrSvg(Request $request): HttpResponse
     {
         $user = $this->requireUser($request);

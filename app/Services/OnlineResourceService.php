@@ -352,7 +352,7 @@ final readonly class OnlineResourceService
             'is_active' => $category->is_active,
             'qr_url' => $this->qr->categoryUrl($category),
             'links_count' => $links->count(),
-            'links' => $links->map(fn (OnlineResourceLink $link): array => $this->serializeLink($link, $includeAdminMeta))->values()->all(),
+            'links' => $links->map(fn (OnlineResourceLink $link): array => $this->serializeLink($link, $includeAdminMeta, $category))->values()->all(),
         ];
 
         if ($includeAdminMeta) {
@@ -375,7 +375,7 @@ final readonly class OnlineResourceService
     /**
      * @return array<string, mixed>
      */
-    public function serializeLink(OnlineResourceLink $link, bool $includeAdminMeta = false): array
+    public function serializeLink(OnlineResourceLink $link, bool $includeAdminMeta = false, ?OnlineResourceCategory $category = null): array
     {
         $payload = [
             'id' => $link->id,
@@ -395,8 +395,18 @@ final readonly class OnlineResourceService
         ];
 
         if ($includeAdminMeta) {
+            $ownerCategory = $category ?? ($link->relationLoaded('category') ? $link->category : null);
+            $isClassScope = $ownerCategory instanceof OnlineResourceCategory && $ownerCategory->owner_type === 'class';
+
             $payload['click_count'] = $link->click_count;
             $payload['last_clicked_at'] = $link->last_clicked_at?->toIso8601String();
+            $payload['qr_url'] = $this->qr->directLinkQrUrl($link);
+            $payload['qr_svg_url'] = $isClassScope
+                ? route('faculty.classes.resources.links.qr.svg', ['class' => $ownerCategory->owner_id, 'link' => $link->id])
+                : route('administrators.online-resources.links.qr.svg', ['link' => $link->id]);
+            $payload['qr_png_url'] = $isClassScope
+                ? route('faculty.classes.resources.links.qr.png', ['class' => $ownerCategory->owner_id, 'link' => $link->id])
+                : route('administrators.online-resources.links.qr.png', ['link' => $link->id]);
         }
 
         return $payload;

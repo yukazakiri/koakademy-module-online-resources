@@ -84,7 +84,15 @@ export function ResourceHubManager({
     const [editingLink, setEditingLink] = useState<OnlineResourceLinkItem | null>(null);
     const [deletingLink, setDeletingLink] = useState<OnlineResourceLinkItem | null>(null);
 
-    const [qrCategory, setQrCategory] = useState<OnlineResourceCategoryItem | null>(null);
+    const [qrTarget, setQrTarget] = useState<{
+        title: string;
+        subtitle?: string | null;
+        visibilityLabel?: string;
+        qrUrl: string;
+        svgUrl: string;
+        pngUrl: string;
+        posterPdfUrl?: string | null;
+    } | null>(null);
 
     const filteredCategories = useMemo(() => {
         const normalized = searchQuery.trim().toLowerCase();
@@ -246,10 +254,11 @@ export function ResourceHubManager({
         <div className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative flex-1 sm:max-w-sm">
-                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden="true" />
                     <Input
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        aria-label="Filter categories or links"
                         placeholder="Filter categories or links..."
                         className="h-9 rounded-xl pl-9 pr-8"
                     />
@@ -367,9 +376,19 @@ export function ResourceHubManager({
                                                 variant="outline"
                                                 size="sm"
                                                 className="h-8 gap-1.5 rounded-lg text-xs"
-                                                onClick={() => setQrCategory(category)}
+                                                onClick={() =>
+                                                    setQrTarget({
+                                                        title: category.name,
+                                                        subtitle: category.description,
+                                                        visibilityLabel: category.visibility_label,
+                                                        qrUrl: category.qr_url,
+                                                        svgUrl: category.qr_svg_url!,
+                                                        pngUrl: category.qr_png_url!,
+                                                        posterPdfUrl: category.poster_pdf_url,
+                                                    })
+                                                }
                                             >
-                                                <QrCode className="size-3.5" />
+                                                <QrCode className="size-3.5" aria-hidden="true" />
                                                 QR Code
                                             </Button>
                                         )}
@@ -383,7 +402,7 @@ export function ResourceHubManager({
                                                     className="h-8 gap-1 rounded-lg text-xs"
                                                     onClick={() => openAddLink(category)}
                                                 >
-                                                    <Plus className="size-3.5" />
+                                                    <Plus className="size-3.5" aria-hidden="true" />
                                                     Add Link
                                                 </Button>
 
@@ -396,9 +415,10 @@ export function ResourceHubManager({
                                                             className="size-8 rounded-r-none"
                                                             disabled={originalIndex <= 0}
                                                             title="Move category up"
+                                                            aria-label={`Move ${category.name} up`}
                                                             onClick={() => handleMoveCategory(originalIndex, -1)}
                                                         >
-                                                            <ArrowUp className="size-3.5" />
+                                                            <ArrowUp className="size-3.5" aria-hidden="true" />
                                                         </Button>
                                                         <Button
                                                             type="button"
@@ -407,9 +427,10 @@ export function ResourceHubManager({
                                                             className="size-8 rounded-l-none"
                                                             disabled={originalIndex >= categories.length - 1}
                                                             title="Move category down"
+                                                            aria-label={`Move ${category.name} down`}
                                                             onClick={() => handleMoveCategory(originalIndex, 1)}
                                                         >
-                                                            <ArrowDown className="size-3.5" />
+                                                            <ArrowDown className="size-3.5" aria-hidden="true" />
                                                         </Button>
                                                     </div>
                                                 )}
@@ -420,9 +441,10 @@ export function ResourceHubManager({
                                                     size="icon"
                                                     className="size-8 rounded-lg"
                                                     title="Edit category"
+                                                    aria-label={`Edit ${category.name}`}
                                                     onClick={() => openEditCategory(category)}
                                                 >
-                                                    <Pencil className="size-3.5" />
+                                                    <Pencil className="size-3.5" aria-hidden="true" />
                                                 </Button>
 
                                                 <Button
@@ -431,9 +453,10 @@ export function ResourceHubManager({
                                                     size="icon"
                                                     className="text-destructive hover:bg-destructive/10 hover:text-destructive size-8 rounded-lg"
                                                     title="Delete category"
+                                                    aria-label={`Delete ${category.name}`}
                                                     onClick={() => setDeletingCategory(category)}
                                                 >
-                                                    <Trash2 className="size-3.5" />
+                                                    <Trash2 className="size-3.5" aria-hidden="true" />
                                                 </Button>
                                             </>
                                         )}
@@ -508,56 +531,85 @@ export function ResourceHubManager({
                                                     </div>
                                                 </div>
 
-                                                {canManage && (
-                                                    <div className="flex shrink-0 items-center gap-1">
-                                                        {category.links.length > 1 && (
-                                                            <div className="border-border/70 flex items-center rounded-lg border">
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="size-7 rounded-r-none"
-                                                                    disabled={linkIndex === 0}
-                                                                    title="Move link up"
-                                                                    onClick={() => handleMoveLink(category, linkIndex, -1)}
-                                                                >
-                                                                    <ArrowUp className="size-3" />
-                                                                </Button>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="size-7 rounded-l-none"
-                                                                    disabled={linkIndex === category.links.length - 1}
-                                                                    title="Move link down"
-                                                                    onClick={() => handleMoveLink(category, linkIndex, 1)}
-                                                                >
-                                                                    <ArrowDown className="size-3" />
-                                                                </Button>
-                                                            </div>
-                                                        )}
+                                                <div className="flex shrink-0 items-center gap-1">
+                                                    {link.qr_url && link.qr_svg_url && link.qr_png_url && (
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
                                                             size="icon"
                                                             className="size-7 rounded-lg"
-                                                            title="Edit link"
-                                                            onClick={() => openEditLink(category, link)}
+                                                            title="Direct link QR code"
+                                                            aria-label={`Direct QR code for ${link.title}`}
+                                                            onClick={() =>
+                                                                setQrTarget({
+                                                                    title: link.title,
+                                                                    subtitle: `Direct link QR (${category.name})`,
+                                                                    visibilityLabel: category.visibility_label,
+                                                                    qrUrl: link.qr_url!,
+                                                                    svgUrl: link.qr_svg_url!,
+                                                                    pngUrl: link.qr_png_url!,
+                                                                    posterPdfUrl: null,
+                                                                })
+                                                            }
                                                         >
-                                                            <Pencil className="size-3.5" />
+                                                            <QrCode className="size-3.5" aria-hidden="true" />
                                                         </Button>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="text-destructive hover:bg-destructive/10 hover:text-destructive size-7 rounded-lg"
-                                                            title="Delete link"
-                                                            onClick={() => setDeletingLink(link)}
-                                                        >
-                                                            <Trash2 className="size-3.5" />
-                                                        </Button>
-                                                    </div>
-                                                )}
+                                                    )}
+                                                    {canManage && (
+                                                        <>
+                                                            {category.links.length > 1 && (
+                                                                <div className="border-border/70 flex items-center rounded-lg border">
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="size-7 rounded-r-none"
+                                                                        disabled={linkIndex === 0}
+                                                                        title="Move link up"
+                                                                        aria-label={`Move ${link.title} up`}
+                                                                        onClick={() => handleMoveLink(category, linkIndex, -1)}
+                                                                    >
+                                                                        <ArrowUp className="size-3" aria-hidden="true" />
+                                                                    </Button>
+                                                                    <Button
+                                                                        type="button"
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="size-7 rounded-l-none"
+                                                                        disabled={linkIndex === category.links.length - 1}
+                                                                        title="Move link down"
+                                                                        aria-label={`Move ${link.title} down`}
+                                                                        onClick={() => handleMoveLink(category, linkIndex, 1)}
+                                                                    >
+                                                                        <ArrowDown className="size-3" aria-hidden="true" />
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="size-7 rounded-lg"
+                                                                title="Edit link"
+                                                                aria-label={`Edit ${link.title}`}
+                                                                onClick={() => openEditLink(category, link)}
+                                                            >
+                                                                <Pencil className="size-3.5" aria-hidden="true" />
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="text-destructive hover:bg-destructive/10 hover:text-destructive size-7 rounded-lg"
+                                                                title="Delete link"
+                                                                aria-label={`Delete ${link.title}`}
+                                                                onClick={() => setDeletingLink(link)}
+                                                            >
+                                                                <Trash2 className="size-3.5" aria-hidden="true" />
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))
                                     )}
@@ -581,25 +633,26 @@ export function ResourceHubManager({
                 open={linkDialogOpen}
                 onOpenChange={setLinkDialogOpen}
                 categoryName={linkTargetCategory?.name ?? ""}
+                categories={categories}
                 link={editingLink}
                 metadataUrl={endpoints.fetchLinkMetadata}
                 submitting={submitting}
                 onSubmit={handleLinkSubmit}
             />
 
-            {qrCategory && qrCategory.qr_svg_url && qrCategory.qr_png_url && (
+            {qrTarget && (
                 <ResourceQrDialog
-                    open={qrCategory !== null}
+                    open={qrTarget !== null}
                     onOpenChange={(open) => {
-                        if (!open) setQrCategory(null);
+                        if (!open) setQrTarget(null);
                     }}
-                    title={qrCategory.name}
-                    subtitle={qrCategory.description}
-                    visibilityLabel={qrCategory.visibility_label}
-                    qrUrl={qrCategory.qr_url}
-                    svgUrl={qrCategory.qr_svg_url}
-                    pngUrl={qrCategory.qr_png_url}
-                    posterPdfUrl={qrCategory.poster_pdf_url}
+                    title={qrTarget.title}
+                    subtitle={qrTarget.subtitle}
+                    visibilityLabel={qrTarget.visibilityLabel}
+                    qrUrl={qrTarget.qrUrl}
+                    svgUrl={qrTarget.svgUrl}
+                    pngUrl={qrTarget.pngUrl}
+                    posterPdfUrl={qrTarget.posterPdfUrl}
                 />
             )}
 

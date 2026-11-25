@@ -124,9 +124,9 @@ export function ClassResourcesTab({
 
                     <form onSubmit={handleCopyFromClass} className="space-y-4">
                         <div className="space-y-2">
-                            <Label>Source Class</Label>
+                            <Label htmlFor="copy-source-class">Source Class</Label>
                             <Select value={sourceClassId} onValueChange={setSourceClassId}>
-                                <SelectTrigger>
+                                <SelectTrigger id="copy-source-class">
                                     <SelectValue placeholder="Choose a class to copy from..." />
                                 </SelectTrigger>
                                 <SelectContent>

@@ -118,3 +118,63 @@ export function getResourceIcon(iconName?: string | null): ComponentType<{ class
 export function getResourceAccent(accent?: string | null) {
     return RESOURCE_ACCENT_OPTIONS.find((item) => item.value === accent) ?? RESOURCE_ACCENT_OPTIONS[0];
 }
+
+export function inferResourceIconFromUrl(rawUrl: string): string | null {
+    try {
+        const parsed = new URL(rawUrl.trim());
+        const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+        const path = parsed.pathname.toLowerCase();
+
+        if (
+            host === "youtube.com" ||
+            host === "m.youtube.com" ||
+            host === "youtu.be" ||
+            host === "vimeo.com" ||
+            host === "loom.com" ||
+            host === "meet.google.com" ||
+            host.endsWith(".zoom.us") ||
+            host === "zoom.us"
+        ) {
+            return "video";
+        }
+
+        if (
+            host === "github.com" ||
+            host === "gitlab.com" ||
+            host === "codepen.io" ||
+            host === "replit.com" ||
+            host === "codesandbox.io" ||
+            host === "stackoverflow.com"
+        ) {
+            return "code";
+        }
+
+        if (host === "drive.google.com" || host === "dropbox.com" || host === "onedrive.live.com") {
+            return "folder";
+        }
+
+        if (host === "scholar.google.com" || host === "jstor.org" || host === "arxiv.org" || host.endsWith("wikipedia.org")) {
+            return "book";
+        }
+
+        if (host === "calendar.google.com" || host === "calendly.com") {
+            return "calendar";
+        }
+
+        if (host === "classroom.google.com" || host === "khanacademy.org" || host === "coursera.org" || host === "edx.org") {
+            return "graduation";
+        }
+
+        if (
+            host === "docs.google.com" ||
+            host === "forms.gle" ||
+            /\.(pdf|docx?|pptx?|xlsx?|csv|txt|md)$/i.test(path)
+        ) {
+            return "document";
+        }
+
+        return null;
+    } catch {
+        return null;
+    }
+}

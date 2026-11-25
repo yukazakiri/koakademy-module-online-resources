@@ -31,6 +31,11 @@ final class OnlineResourceQrService
         return route('online-resources.qr.go', ['shortCode' => $link->short_code]);
     }
 
+    public function directLinkQrUrl(OnlineResourceLink $link): string
+    {
+        return route('online-resources.qr.resolve', ['shortCode' => $link->short_code]);
+    }
+
     public function schoolHubUrl(Model $school): string
     {
         return route('online-resources.directory', ['schoolCode' => (string) $school->getAttribute('code')]);

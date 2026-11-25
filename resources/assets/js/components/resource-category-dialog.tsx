@@ -124,9 +124,9 @@ export function ResourceCategoryDialog({
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label>QR Access Visibility</Label>
+                            <Label htmlFor="resource-category-visibility">QR Access Visibility</Label>
                             <Select value={visibility} onValueChange={(value) => setVisibility(value as OnlineResourceVisibility)}>
-                                <SelectTrigger>
+                                <SelectTrigger id="resource-category-visibility">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -141,9 +141,9 @@ export function ResourceCategoryDialog({
 
                         {scope === "school" && (
                             <div className="space-y-2">
-                                <Label>Target Audience</Label>
+                                <Label htmlFor="resource-category-audience">Target Audience</Label>
                                 <Select value={audience} onValueChange={(value) => setAudience(value as OnlineResourceAudience)}>
-                                    <SelectTrigger>
+                                    <SelectTrigger id="resource-category-audience">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -157,8 +157,12 @@ export function ResourceCategoryDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Icon</Label>
-                        <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+                        <Label id="resource-category-icon-label">Icon</Label>
+                        <div
+                            role="radiogroup"
+                            aria-labelledby="resource-category-icon-label"
+                            className="grid grid-cols-4 gap-1.5 sm:grid-cols-8"
+                        >
                             {RESOURCE_ICON_OPTIONS.map((option) => {
                                 const Icon = option.Icon;
                                 const selected = icon === option.value;
@@ -166,16 +170,19 @@ export function ResourceCategoryDialog({
                                     <button
                                         key={option.value}
                                         type="button"
+                                        role="radio"
+                                        aria-checked={selected}
+                                        aria-label={option.label}
                                         title={option.label}
                                         onClick={() => setIcon(option.value)}
                                         className={cn(
-                                            "flex h-9 items-center justify-center rounded-lg border transition-colors",
+                                            "flex h-9 items-center justify-center rounded-lg border transition-colors focus-visible:ring-2 focus-visible:outline-none",
                                             selected
                                                 ? "border-primary bg-primary/12 text-primary"
                                                 : "border-border/70 bg-background hover:bg-muted text-muted-foreground",
                                         )}
                                     >
-                                        <Icon className="size-4" />
+                                        <Icon className="size-4" aria-hidden="true" />
                                     </button>
                                 );
                             })}
@@ -183,32 +190,51 @@ export function ResourceCategoryDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Accent Color</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {RESOURCE_ACCENT_OPTIONS.map((option) => (
-                                <button
-                                    key={option.value}
-                                    type="button"
-                                    title={option.label}
-                                    onClick={() => setAccentColor(option.value)}
-                                    className={cn(
-                                        "size-7 rounded-full border-2 transition-transform",
-                                        option.swatch,
-                                        accentColor === option.value
-                                            ? "border-foreground scale-110 ring-2 ring-foreground/20"
-                                            : "border-transparent hover:scale-105",
-                                    )}
-                                />
-                            ))}
+                        <Label id="resource-category-accent-label">Accent Color</Label>
+                        <div
+                            role="radiogroup"
+                            aria-labelledby="resource-category-accent-label"
+                            className="flex flex-wrap gap-2"
+                        >
+                            {RESOURCE_ACCENT_OPTIONS.map((option) => {
+                                const selected = accentColor === option.value;
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={selected}
+                                        aria-label={option.label}
+                                        title={option.label}
+                                        onClick={() => setAccentColor(option.value)}
+                                        className={cn(
+                                            "size-7 rounded-full border-2 transition-transform focus-visible:ring-2 focus-visible:outline-none motion-reduce:transition-none motion-reduce:transform-none",
+                                            option.swatch,
+                                            selected
+                                                ? "border-foreground scale-110 ring-2 ring-foreground/20"
+                                                : "border-transparent hover:scale-105",
+                                        )}
+                                    />
+                                );
+                            })}
                         </div>
                     </div>
 
-                    <div className="bg-muted/40 border-border/70 flex items-center justify-between rounded-xl border px-3.5 py-2.5">
+                    <div className="bg-muted/40 border-border/70 flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5">
                         <div>
-                            <p className="text-sm font-medium">Published & scannable</p>
-                            <p className="text-muted-foreground text-xs">Inactive categories are hidden from students and QR scans.</p>
+                            <Label htmlFor="resource-category-active" className="cursor-pointer text-sm font-medium">
+                                Published & scannable
+                            </Label>
+                            <p id="resource-category-active-desc" className="text-muted-foreground text-xs">
+                                Inactive categories are hidden from students and QR scans.
+                            </p>
                         </div>
-                        <Switch checked={isActive} onCheckedChange={setIsActive} />
+                        <Switch
+                            id="resource-category-active"
+                            aria-describedby="resource-category-active-desc"
+                            checked={isActive}
+                            onCheckedChange={setIsActive}
+                        />
                     </div>
 
                     <DialogFooter>

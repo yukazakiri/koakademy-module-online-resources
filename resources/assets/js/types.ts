@@ -21,6 +21,9 @@ export interface OnlineResourceLinkItem {
     opens_in_new_tab: boolean;
     click_count?: number;
     last_clicked_at?: string | null;
+    qr_url?: string;
+    qr_svg_url?: string;
+    qr_png_url?: string;
 }
 
 export interface OnlineResourceCategoryItem {

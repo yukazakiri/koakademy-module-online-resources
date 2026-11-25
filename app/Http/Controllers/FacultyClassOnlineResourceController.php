@@ -230,6 +230,32 @@ final class FacultyClassOnlineResourceController extends Controller
         return $this->qr->categoryPosterPdf($model, $headerMeta);
     }
 
+    public function linkQrSvg(Request $request, Classes $class, int $link): HttpResponse
+    {
+        $user = $this->requireUser($request);
+        Gate::forUser($user)->authorize('exportQr', [OnlineResourceCategory::class, $class]);
+
+        $model = $this->findClassLink($class, $link);
+
+        return $this->qr->svgResponse(
+            url: $this->qr->directLinkQrUrl($model),
+            filename: 'class-'.$class->id.'-'.$model->title.'-qr',
+        );
+    }
+
+    public function linkQrPng(Request $request, Classes $class, int $link): HttpResponse
+    {
+        $user = $this->requireUser($request);
+        Gate::forUser($user)->authorize('exportQr', [OnlineResourceCategory::class, $class]);
+
+        $model = $this->findClassLink($class, $link);
+
+        return $this->qr->pngDownloadResponse(
+            url: $this->qr->directLinkQrUrl($model),
+            filename: 'class-'.$class->id.'-'.$model->title.'-qr',
+        );
+    }
+
     private function requireUser(Request $request): User
     {
         $user = $request->user();

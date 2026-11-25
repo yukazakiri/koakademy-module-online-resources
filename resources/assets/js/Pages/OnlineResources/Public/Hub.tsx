@@ -42,11 +42,18 @@ export default function PublicOnlineResourcesHub({
         <div className="bg-background text-foreground flex min-h-dvh flex-col">
             <Head title={`${headerMeta.title} — ${headerMeta.school_name}`} />
 
+            <a
+                href="#online-resources-main"
+                className="bg-primary text-primary-foreground sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
+            >
+                Skip to resources
+            </a>
+
             <header className="border-border/70 bg-card/85 sticky top-0 z-20 border-b backdrop-blur-md">
                 <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
                     <div className="flex min-w-0 items-center gap-2.5">
                         <div className="bg-primary/12 text-primary flex size-9 shrink-0 items-center justify-center rounded-xl">
-                            <School className="size-5" />
+                            <School className="size-5" aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold leading-tight">{headerMeta.school_name}</p>
@@ -55,25 +62,32 @@ export default function PublicOnlineResourcesHub({
                     </div>
 
                     <div className="flex shrink-0 items-center gap-2">
-                        <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-xs" onClick={handleCopyLink}>
-                            {copied ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            aria-label={copied ? "Page link copied" : "Share this page"}
+                            className="min-h-10 gap-1.5 rounded-full text-xs sm:min-h-8"
+                            onClick={handleCopyLink}
+                        >
+                            {copied ? <Check className="size-3.5 text-emerald-600" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
                             <span className="hidden sm:inline">{copied ? "Copied" : "Share"}</span>
                         </Button>
 
                         {isAuthenticated ? (
                             <Link
                                 href={portalUrl || "/student/resources"}
-                                className={buttonVariants({ size: "sm", className: "h-8 gap-1.5 rounded-full text-xs" })}
+                                className={buttonVariants({ size: "sm", className: "min-h-10 gap-1.5 rounded-full text-xs sm:min-h-8" })}
                             >
-                                <ExternalLink className="size-3.5" />
+                                <ExternalLink className="size-3.5" aria-hidden="true" />
                                 Portal
                             </Link>
                         ) : (
                             <Link
                                 href="/login"
-                                className={buttonVariants({ size: "sm", variant: "secondary", className: "h-8 gap-1.5 rounded-full text-xs" })}
+                                className={buttonVariants({ size: "sm", variant: "secondary", className: "min-h-10 gap-1.5 rounded-full text-xs sm:min-h-8" })}
                             >
-                                <LogIn className="size-3.5" />
+                                <LogIn className="size-3.5" aria-hidden="true" />
                                 Sign In
                             </Link>
                         )}
@@ -81,7 +95,7 @@ export default function PublicOnlineResourcesHub({
                 </div>
             </header>
 
-            <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
+            <main id="online-resources-main" className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
                 <section className="from-primary/8 via-card to-card border-border/70 relative overflow-hidden rounded-3xl border bg-gradient-to-br p-5 sm:p-7">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                         <div className="space-y-2">

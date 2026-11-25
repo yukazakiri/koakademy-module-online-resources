@@ -2,27 +2,33 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import type { OnlineResourceLinkItem } from "../types";
+import { cn } from "@/lib/utils";
+import type { OnlineResourceCategoryItem, OnlineResourceLinkItem } from "../types";
 import axios from "axios";
 import { Loader2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { inferResourceIconFromUrl, RESOURCE_ICON_OPTIONS } from "./resource-icons";
 
 export interface LinkFormPayload {
     title: string;
     url: string;
     description: string;
+    icon: string | null;
     badge_text: string;
     is_featured: boolean;
     is_active: boolean;
     opens_in_new_tab: boolean;
+    category_id?: number;
 }
 
 interface ResourceLinkDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     categoryName: string;
+    categories?: OnlineResourceCategoryItem[];
     link?: OnlineResourceLinkItem | null;
     metadataUrl?: string;
     submitting: boolean;
@@ -179,6 +185,7 @@ export function ResourceLinkDialog({
     open,
     onOpenChange,
     categoryName,
+    categories = [],
     link,
     metadataUrl,
     submitting,
@@ -187,15 +194,19 @@ export function ResourceLinkDialog({
     const [title, setTitle] = useState("");
     const [url, setUrl] = useState("");
     const [description, setDescription] = useState("");
+    const [icon, setIcon] = useState<string>("");
     const [badgeText, setBadgeText] = useState("");
+    const [categoryId, setCategoryId] = useState<string>("");
     const [isFeatured, setIsFeatured] = useState(false);
     const [isActive, setIsActive] = useState(true);
     const [opensInNewTab, setOpensInNewTab] = useState(true);
 
     const [fetchingTitle, setFetchingTitle] = useState(false);
     const [autoFillSource, setAutoFillSource] = useState<"page" | "url" | null>(null);
+    const [suggestedDescription, setSuggestedDescription] = useState<string | null>(null);
 
     const titleManuallyEditedRef = useRef(false);
+    const iconManuallySelectedRef = useRef(false);
     const lastFetchedUrlRef = useRef<string>("");
     const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -215,26 +226,33 @@ export function ResourceLinkDialog({
 
         lastFetchedUrlRef.current = "";
         setAutoFillSource(null);
+        setSuggestedDescription(null);
         setFetchingTitle(false);
 
         if (link) {
             setTitle(link.title);
             setUrl(link.url);
             setDescription(link.description ?? "");
+            setIcon(link.icon ?? "");
             setBadgeText(link.badge_text ?? "");
+            setCategoryId(String(link.category_id));
             setIsFeatured(link.is_featured);
             setIsActive(link.is_active);
             setOpensInNewTab(link.opens_in_new_tab);
             titleManuallyEditedRef.current = link.title.trim() !== "";
+            iconManuallySelectedRef.current = Boolean(link.icon);
         } else {
             setTitle("");
             setUrl("");
             setDescription("");
+            setIcon("");
             setBadgeText("");
+            setCategoryId("");
             setIsFeatured(false);
             setIsActive(true);
             setOpensInNewTab(true);
             titleManuallyEditedRef.current = false;
+            iconManuallySelectedRef.current = false;
         }
     }, [open, link, cancelPendingFetch]);
 
@@ -247,6 +265,13 @@ export function ResourceLinkDialog({
             const trimmedUrl = targetUrl.trim();
             if (!isFetchableHttpUrl(trimmedUrl)) {
                 return;
+            }
+
+            if (!iconManuallySelectedRef.current) {
+                const inferred = inferResourceIconFromUrl(trimmedUrl);
+                if (inferred) {
+                    setIcon(inferred);
+                }
             }
 
             if (!force && (titleManuallyEditedRef.current || lastFetchedUrlRef.current === trimmedUrl)) {
@@ -276,7 +301,14 @@ export function ResourceLinkDialog({
                     { signal: controller.signal },
                 );
 
-                if (controller.signal.aborted || (!force && titleManuallyEditedRef.current)) {
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                const pageDescription = response.data?.description?.trim() || null;
+                setSuggestedDescription(pageDescription);
+
+                if (!force && titleManuallyEditedRef.current) {
                     return;
                 }
 
@@ -347,6 +379,11 @@ export function ResourceLinkDialog({
         }
     };
 
+    const handleIconSelect = (nextIcon: string) => {
+        setIcon(nextIcon);
+        iconManuallySelectedRef.current = nextIcon !== "";
+    };
+
     const handleManualAutoFill = () => {
         if (!isFetchableHttpUrl(url)) return;
         titleManuallyEditedRef.current = false;
@@ -357,22 +394,31 @@ export function ResourceLinkDialog({
     const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
         if (title.trim() === "" || url.trim() === "") return;
-        onSubmit({
+
+        const payload: LinkFormPayload = {
             title: title.trim(),
             url: url.trim(),
             description: description.trim(),
+            icon: icon.trim() !== "" ? icon.trim() : null,
             badge_text: badgeText.trim(),
             is_featured: isFeatured,
             is_active: isActive,
             opens_in_new_tab: opensInNewTab,
-        });
+        };
+
+        if (link && categoryId && Number(categoryId) !== link.category_id) {
+            payload.category_id = Number(categoryId);
+        }
+
+        onSubmit(payload);
     };
 
     const canAutoFill = isFetchableHttpUrl(url);
+    const canMoveCategory = Boolean(link && categories.length > 1);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{link ? "Edit Resource Link" : "Add Resource Link"}</DialogTitle>
                     <DialogDescription>Category: {categoryName}</DialogDescription>
@@ -391,8 +437,9 @@ export function ResourceLinkDialog({
                             required
                             maxLength={2048}
                             autoFocus={!link}
+                            aria-describedby="resource-link-url-hint"
                         />
-                        <p className="text-muted-foreground text-[11px]">
+                        <p id="resource-link-url-hint" className="text-muted-foreground text-[11px]">
                             Must start with https:// or http://. Paste a link to auto-fill the title.
                         </p>
                     </div>
@@ -401,8 +448,12 @@ export function ResourceLinkDialog({
                         <div className="flex items-center justify-between gap-2">
                             <Label htmlFor="resource-link-title">Title</Label>
                             {fetchingTitle ? (
-                                <span className="text-muted-foreground inline-flex items-center gap-1 text-[11px]">
-                                    <Loader2 className="size-3 animate-spin" />
+                                <span
+                                    role="status"
+                                    aria-live="polite"
+                                    className="text-muted-foreground inline-flex items-center gap-1 text-[11px]"
+                                >
+                                    <Loader2 className="size-3 animate-spin" aria-hidden="true" />
                                     Fetching title...
                                 </span>
                             ) : canAutoFill ? (
@@ -411,7 +462,7 @@ export function ResourceLinkDialog({
                                     onClick={handleManualAutoFill}
                                     className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[11px] font-medium transition-colors"
                                 >
-                                    <Sparkles className="size-3" />
+                                    <Sparkles className="size-3" aria-hidden="true" />
                                     Auto-fill from URL
                                 </button>
                             ) : null}
@@ -425,7 +476,7 @@ export function ResourceLinkDialog({
                             maxLength={160}
                         />
                         {autoFillSource && !fetchingTitle && (
-                            <p className="text-muted-foreground text-[11px]">
+                            <p role="status" aria-live="polite" className="text-muted-foreground text-[11px]">
                                 {autoFillSource === "page"
                                     ? "Title auto-filled from the page. You can edit it anytime."
                                     : "Title suggested from the URL. You can edit it anytime."}
@@ -433,9 +484,42 @@ export function ResourceLinkDialog({
                         )}
                     </div>
 
+                    {canMoveCategory && (
+                        <div className="space-y-2">
+                            <Label htmlFor="resource-link-category">Category</Label>
+                            <Select value={categoryId} onValueChange={setCategoryId}>
+                                <SelectTrigger id="resource-link-category">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {categories.map((cat) => (
+                                        <SelectItem key={cat.id} value={String(cat.id)}>
+                                            {cat.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2 sm:col-span-2">
-                            <Label htmlFor="resource-link-description">Description</Label>
+                            <div className="flex items-center justify-between gap-2">
+                                <Label htmlFor="resource-link-description">Description</Label>
+                                {suggestedDescription && description.trim() === "" && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setDescription(suggestedDescription.slice(0, 500));
+                                            setSuggestedDescription(null);
+                                        }}
+                                        className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-[11px] font-medium transition-colors"
+                                    >
+                                        <Sparkles className="size-3" aria-hidden="true" />
+                                        Use page description
+                                    </button>
+                                )}
+                            </div>
                             <Textarea
                                 id="resource-link-description"
                                 value={description}
@@ -458,28 +542,99 @@ export function ResourceLinkDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <div className="bg-muted/40 border-border/70 flex items-center justify-between rounded-xl border px-3.5 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <Label id="resource-link-icon-label">Icon</Label>
+                            {icon && (
+                                <button
+                                    type="button"
+                                    onClick={() => handleIconSelect("")}
+                                    className="text-muted-foreground hover:text-foreground text-[11px] transition-colors"
+                                >
+                                    Reset to default
+                                </button>
+                            )}
+                        </div>
+                        <div
+                            role="radiogroup"
+                            aria-labelledby="resource-link-icon-label"
+                            className="grid grid-cols-4 gap-1.5 sm:grid-cols-8"
+                        >
+                            {RESOURCE_ICON_OPTIONS.map((option) => {
+                                const Icon = option.Icon;
+                                const selected = (icon || "link") === option.value;
+                                return (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={selected}
+                                        aria-label={option.label}
+                                        title={option.label}
+                                        onClick={() => handleIconSelect(option.value)}
+                                        className={cn(
+                                            "flex h-9 items-center justify-center rounded-lg border transition-colors focus-visible:ring-2 focus-visible:outline-none",
+                                            selected
+                                                ? "border-primary bg-primary/12 text-primary"
+                                                : "border-border/70 bg-background hover:bg-muted text-muted-foreground",
+                                        )}
+                                    >
+                                        <Icon className="size-4" aria-hidden="true" />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="bg-muted/40 border-border/70 flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2">
                             <div>
-                                <p className="text-sm font-medium">Highlight as Featured</p>
-                                <p className="text-muted-foreground text-xs">Draws visual emphasis for essential links.</p>
+                                <Label htmlFor="resource-link-featured" className="cursor-pointer text-sm font-medium">
+                                    Highlight as Featured
+                                </Label>
+                                <p id="resource-link-featured-desc" className="text-muted-foreground text-xs">
+                                    Draws visual emphasis for essential links.
+                                </p>
                             </div>
-                            <Switch checked={isFeatured} onCheckedChange={setIsFeatured} />
+                            <Switch
+                                id="resource-link-featured"
+                                aria-describedby="resource-link-featured-desc"
+                                checked={isFeatured}
+                                onCheckedChange={setIsFeatured}
+                            />
                         </div>
 
-                        <div className="bg-muted/40 border-border/70 flex items-center justify-between rounded-xl border px-3.5 py-2">
+                        <div className="bg-muted/40 border-border/70 flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2">
                             <div>
-                                <p className="text-sm font-medium">Open in new tab</p>
-                                <p className="text-muted-foreground text-xs">Keeps the resource hub open when tapped.</p>
+                                <Label htmlFor="resource-link-new-tab" className="cursor-pointer text-sm font-medium">
+                                    Open in new tab
+                                </Label>
+                                <p id="resource-link-new-tab-desc" className="text-muted-foreground text-xs">
+                                    Keeps the resource hub open when tapped.
+                                </p>
                             </div>
-                            <Switch checked={opensInNewTab} onCheckedChange={setOpensInNewTab} />
+                            <Switch
+                                id="resource-link-new-tab"
+                                aria-describedby="resource-link-new-tab-desc"
+                                checked={opensInNewTab}
+                                onCheckedChange={setOpensInNewTab}
+                            />
                         </div>
 
-                        <div className="bg-muted/40 border-border/70 flex items-center justify-between rounded-xl border px-3.5 py-2">
+                        <div className="bg-muted/40 border-border/70 flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2">
                             <div>
-                                <p className="text-sm font-medium">Active</p>
-                                <p className="text-muted-foreground text-xs">Hide temporarily without deleting this link.</p>
+                                <Label htmlFor="resource-link-active" className="cursor-pointer text-sm font-medium">
+                                    Active
+                                </Label>
+                                <p id="resource-link-active-desc" className="text-muted-foreground text-xs">
+                                    Hide temporarily without deleting this link.
+                                </p>
                             </div>
-                            <Switch checked={isActive} onCheckedChange={setIsActive} />
+                            <Switch
+                                id="resource-link-active"
+                                aria-describedby="resource-link-active-desc"
+                                checked={isActive}
+                                onCheckedChange={setIsActive}
+                            />
                         </div>
                     </div>
 
