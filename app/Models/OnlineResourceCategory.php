@@ -28,8 +28,13 @@ use Override;
  * @property string $name
  * @property string $slug
  * @property string|null $description
+ * @property string|null $hero_tagline
+ * @property string|null $banner_path
  * @property string $icon
  * @property string $accent_color
+ * @property string $design_mode
+ * @property array<string, mixed>|null $design_config
+ * @property array<string, mixed>|null $seo_config
  * @property OnlineResourceVisibility $visibility
  * @property OnlineResourceAudience $audience
  * @property int $sort_order
@@ -68,8 +73,13 @@ final class OnlineResourceCategory extends Model
         'name',
         'slug',
         'description',
+        'hero_tagline',
+        'banner_path',
         'icon',
         'accent_color',
+        'design_mode',
+        'design_config',
+        'seo_config',
         'visibility',
         'audience',
         'sort_order',
@@ -227,6 +237,8 @@ final class OnlineResourceCategory extends Model
             'owner_id' => 'int',
             'visibility' => OnlineResourceVisibility::class,
             'audience' => OnlineResourceAudience::class,
+            'design_config' => 'array',
+            'seo_config' => 'array',
             'sort_order' => 'int',
             'is_active' => 'bool',
             'scan_count' => 'int',

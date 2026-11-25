@@ -41,6 +41,33 @@ final class OnlineResourceQrService
         return route('online-resources.directory', ['schoolCode' => (string) $school->getAttribute('code')]);
     }
 
+    public function classHubUrl(Model $class): string
+    {
+        return route('online-resources.class-directory', ['class' => (int) $class->getKey()]);
+    }
+
+    public function categoryPageUrl(OnlineResourceCategory $category, ?Model $owner = null): string
+    {
+        if ($category->owner_type === 'class') {
+            return route('online-resources.class-directory', [
+                'class' => $category->owner_id,
+                'categorySlug' => $category->slug,
+            ]);
+        }
+
+        if ($category->owner_type === 'school' && $owner instanceof Model) {
+            $schoolCode = (string) $owner->getAttribute('code');
+            if ($schoolCode !== '') {
+                return route('online-resources.directory', [
+                    'schoolCode' => $schoolCode,
+                    'categorySlug' => $category->slug,
+                ]);
+            }
+        }
+
+        return $this->categoryUrl($category);
+    }
+
     public function generateSvg(string $url, int $size = 320): string
     {
         $result = new Builder(

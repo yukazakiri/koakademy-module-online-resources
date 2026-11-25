@@ -21,13 +21,17 @@ use Modules\OnlineResources\Http\Requests\ReorderOnlineResourcesRequest;
 use Modules\OnlineResources\Http\Requests\StoreOnlineResourceCategoryRequest;
 use Modules\OnlineResources\Http\Requests\StoreOnlineResourceLinkRequest;
 use Modules\OnlineResources\Http\Requests\UpdateOnlineResourceCategoryRequest;
+use Modules\OnlineResources\Http\Requests\UpdateOnlineResourceHubSettingRequest;
 use Modules\OnlineResources\Http\Requests\UpdateOnlineResourceLinkRequest;
+use Modules\OnlineResources\Http\Requests\UploadOnlineResourceMediaRequest;
 use Modules\OnlineResources\Models\OnlineResourceCategory;
 use Modules\OnlineResources\Models\OnlineResourceLink;
+use Modules\OnlineResources\Services\OnlineResourceMediaService;
 use Modules\OnlineResources\Services\OnlineResourceMetadataService;
 use Modules\OnlineResources\Services\OnlineResourceQrService;
 use Modules\OnlineResources\Services\OnlineResourceScopeRegistry;
 use Modules\OnlineResources\Services\OnlineResourceService;
+use Modules\OnlineResources\Services\OnlineResourceThemeService;
 use Spatie\LaravelPdf\PdfBuilder;
 
 final class AdministratorOnlineResourceController extends Controller
@@ -38,6 +42,8 @@ final class AdministratorOnlineResourceController extends Controller
         private readonly OnlineResourceScopeRegistry $scopes,
         private readonly TenantContext $tenantContext,
         private readonly OnlineResourceMetadataService $metadata,
+        private readonly OnlineResourceThemeService $themes,
+        private readonly OnlineResourceMediaService $media,
     ) {}
 
     public function index(Request $request): Response
@@ -54,6 +60,8 @@ final class AdministratorOnlineResourceController extends Controller
         );
 
         $headerMeta = $this->scopes->forModel($school)->resolveHeaderMeta($school);
+        $hubSetting = $this->themes->forOwner($school);
+        $serializedHub = $this->themes->serializeHubSetting($school, $hubSetting, $headerMeta);
 
         return Inertia::render('OnlineResources/Admin/Index', [
             'school' => [
@@ -64,13 +72,150 @@ final class AdministratorOnlineResourceController extends Controller
             'headerMeta' => $headerMeta,
             'canManage' => Gate::forUser($user)->allows('manageForOwner', [OnlineResourceCategory::class, $school]),
             'categories' => $categories,
+            'hubSettings' => $serializedHub,
             'hub' => [
                 'url' => $this->qr->schoolHubUrl($school),
+                'sitemap_url' => route('online-resources.sitemap'),
                 'qr_svg_url' => route('administrators.online-resources.hub.qr.svg'),
                 'qr_png_url' => route('administrators.online-resources.hub.qr.png'),
                 'sheet_pdf_url' => route('administrators.online-resources.sheet.pdf'),
             ],
         ]);
+    }
+
+    public function updateHubSettings(UpdateOnlineResourceHubSettingRequest $request): RedirectResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $school]);
+
+        $this->themes->upsertForOwner($school, $request->validated(), $user);
+
+        return redirect()
+            ->back()
+            ->with('status', 'Hub website appearance and SEO settings updated.');
+    }
+
+    public function uploadHubMedia(UploadOnlineResourceMediaRequest $request): JsonResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $school]);
+
+        $slot = (string) $request->validated('slot');
+        $file = $request->file('file');
+        $setting = $this->themes->upsertForOwner($school, [], $user);
+
+        $storedPath = $this->media->storeImage($file, (int) $school->id, $slot);
+
+        if ($slot === 'logo') {
+            $this->media->delete($setting->logo_path);
+            $setting->update(['logo_path' => $storedPath, 'updated_by' => $user->id]);
+        } elseif ($slot === 'banner') {
+            $this->media->delete($setting->banner_path);
+            $setting->update(['banner_path' => $storedPath, 'updated_by' => $user->id]);
+        } else {
+            $seo = is_array($setting->seo_config) ? $setting->seo_config : [];
+            $this->media->delete(is_string($seo['og_image_path'] ?? null) ? $seo['og_image_path'] : null);
+            $seo['og_image_path'] = $storedPath;
+            $setting->update(['seo_config' => $this->themes->sanitizeSeoConfig($seo), 'updated_by' => $user->id]);
+        }
+
+        return response()->json([
+            'slot' => $slot,
+            'path' => $storedPath,
+            'url' => $this->media->url($storedPath),
+        ]);
+    }
+
+    public function deleteHubMedia(Request $request, string $slot): JsonResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $school]);
+
+        if (! in_array($slot, ['logo', 'banner', 'og_image'], true)) {
+            abort(422, 'Unsupported media slot.');
+        }
+
+        $setting = $this->themes->forOwner($school);
+        if ($setting !== null) {
+            if ($slot === 'logo') {
+                $this->media->delete($setting->logo_path);
+                $setting->update(['logo_path' => null, 'updated_by' => $user->id]);
+            } elseif ($slot === 'banner') {
+                $this->media->delete($setting->banner_path);
+                $setting->update(['banner_path' => null, 'updated_by' => $user->id]);
+            } else {
+                $seo = is_array($setting->seo_config) ? $setting->seo_config : [];
+                $this->media->delete(is_string($seo['og_image_path'] ?? null) ? $seo['og_image_path'] : null);
+                $seo['og_image_path'] = null;
+                $setting->update(['seo_config' => $this->themes->sanitizeSeoConfig($seo), 'updated_by' => $user->id]);
+            }
+        }
+
+        return response()->json(['deleted' => true, 'slot' => $slot]);
+    }
+
+    public function uploadCategoryMedia(UploadOnlineResourceMediaRequest $request, int $category): JsonResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $school]);
+
+        $slot = (string) $request->validated('slot');
+        if (! in_array($slot, ['banner', 'og_image'], true)) {
+            abort(422, 'Unsupported category media slot.');
+        }
+
+        $model = $this->findSchoolCategory($school, $category);
+        $storedPath = $this->media->storeImage($request->file('file'), (int) $school->id, $slot);
+
+        if ($slot === 'banner') {
+            $this->media->delete($model->banner_path);
+            $model->update(['banner_path' => $storedPath]);
+        } else {
+            $seo = is_array($model->seo_config) ? $model->seo_config : [];
+            $this->media->delete(is_string($seo['og_image_path'] ?? null) ? $seo['og_image_path'] : null);
+            $seo['og_image_path'] = $storedPath;
+            $model->update(['seo_config' => $this->themes->sanitizeSeoConfig($seo)]);
+        }
+
+        return response()->json([
+            'slot' => $slot,
+            'path' => $storedPath,
+            'url' => $this->media->url($storedPath),
+        ]);
+    }
+
+    public function deleteCategoryMedia(Request $request, int $category, string $slot): JsonResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $school]);
+
+        if (! in_array($slot, ['banner', 'og_image'], true)) {
+            abort(422, 'Unsupported category media slot.');
+        }
+
+        $model = $this->findSchoolCategory($school, $category);
+
+        if ($slot === 'banner') {
+            $this->media->delete($model->banner_path);
+            $model->update(['banner_path' => null]);
+        } else {
+            $seo = is_array($model->seo_config) ? $model->seo_config : [];
+            $this->media->delete(is_string($seo['og_image_path'] ?? null) ? $seo['og_image_path'] : null);
+            $seo['og_image_path'] = null;
+            $model->update(['seo_config' => $this->themes->sanitizeSeoConfig($seo)]);
+        }
+
+        return response()->json(['deleted' => true, 'slot' => $slot]);
     }
 
     public function storeCategory(StoreOnlineResourceCategoryRequest $request): RedirectResponse

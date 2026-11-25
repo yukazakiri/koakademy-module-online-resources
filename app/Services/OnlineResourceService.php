@@ -18,6 +18,8 @@ final readonly class OnlineResourceService
     public function __construct(
         private OnlineResourceScopeRegistry $scopes,
         private OnlineResourceQrService $qr,
+        private OnlineResourceThemeService $themes,
+        private OnlineResourceMediaService $media,
     ) {}
 
     /**
@@ -105,6 +107,18 @@ final readonly class OnlineResourceService
             ? mb_trim($data['slug'])
             : $name;
 
+        $designMode = isset($data['design_mode']) && in_array((string) $data['design_mode'], ['inherit', 'custom'], true)
+            ? (string) $data['design_mode']
+            : 'inherit';
+
+        $designConfig = isset($data['design_config']) && is_array($data['design_config'])
+            ? $this->themes->sanitizeDesignConfig($data['design_config'])
+            : null;
+
+        $seoConfig = isset($data['seo_config']) && is_array($data['seo_config'])
+            ? $this->themes->sanitizeSeoConfig($data['seo_config'])
+            : null;
+
         return OnlineResourceCategory::withoutSchoolScope()->create([
             'school_id' => $schoolId,
             'owner_type' => $ownerType,
@@ -112,8 +126,12 @@ final readonly class OnlineResourceService
             'name' => $name,
             'slug' => OnlineResourceCategory::generateUniqueSlug($schoolId, $ownerType, $ownerId, $slugSource),
             'description' => isset($data['description']) ? mb_trim((string) $data['description']) ?: null : null,
+            'hero_tagline' => isset($data['hero_tagline']) ? mb_trim((string) $data['hero_tagline']) ?: null : null,
             'icon' => (string) ($data['icon'] ?? 'link'),
             'accent_color' => (string) ($data['accent_color'] ?? 'blue'),
+            'design_mode' => $designMode,
+            'design_config' => $designConfig,
+            'seo_config' => $seoConfig,
             'visibility' => (string) ($data['visibility'] ?? OnlineResourceVisibility::Public->value),
             'audience' => (string) ($data['audience'] ?? OnlineResourceAudience::All->value),
             'sort_order' => (int) ($data['sort_order'] ?? $nextOrder),
@@ -146,6 +164,27 @@ final readonly class OnlineResourceService
         if (array_key_exists('description', $data)) {
             $desc = mb_trim((string) ($data['description'] ?? ''));
             $updates['description'] = $desc !== '' ? $desc : null;
+        }
+
+        if (array_key_exists('hero_tagline', $data)) {
+            $tagline = mb_trim((string) ($data['hero_tagline'] ?? ''));
+            $updates['hero_tagline'] = $tagline !== '' ? $tagline : null;
+        }
+
+        if (array_key_exists('design_mode', $data) && in_array((string) $data['design_mode'], ['inherit', 'custom'], true)) {
+            $updates['design_mode'] = (string) $data['design_mode'];
+        }
+
+        if (array_key_exists('design_config', $data)) {
+            $updates['design_config'] = is_array($data['design_config'])
+                ? $this->themes->sanitizeDesignConfig($data['design_config'], is_array($category->design_config) ? $category->design_config : null)
+                : null;
+        }
+
+        if (array_key_exists('seo_config', $data)) {
+            $updates['seo_config'] = is_array($data['seo_config'])
+                ? $this->themes->sanitizeSeoConfig($data['seo_config'], is_array($category->seo_config) ? $category->seo_config : null)
+                : null;
         }
 
         foreach (['icon', 'accent_color', 'visibility', 'audience'] as $field) {
@@ -311,8 +350,11 @@ final readonly class OnlineResourceService
                 $newCategory = $this->createCategory($targetOwner, [
                     'name' => $sourceCategory->name,
                     'description' => $sourceCategory->description,
+                    'hero_tagline' => $sourceCategory->hero_tagline,
                     'icon' => $sourceCategory->icon,
                     'accent_color' => $sourceCategory->accent_color,
+                    'design_mode' => $sourceCategory->design_mode,
+                    'design_config' => $sourceCategory->design_config,
                     'visibility' => $sourceCategory->visibility->value,
                     'audience' => $sourceCategory->audience->value,
                     'is_active' => $sourceCategory->is_active,
@@ -345,10 +387,17 @@ final readonly class OnlineResourceService
         OnlineResourceCategory $category,
         bool $onlyActiveLinks = false,
         bool $includeAdminMeta = false,
+        ?Model $owner = null,
     ): array {
         $links = $onlyActiveLinks
             ? ($category->relationLoaded('activeLinks') ? $category->activeLinks : $category->activeLinks()->get())
             : ($category->relationLoaded('links') ? $category->links : $category->links()->get());
+
+        $seoConfig = $this->themes->sanitizeSeoConfig(
+            is_array($category->seo_config) ? $category->seo_config : [],
+        );
+        $seoOgImageUrl = $this->media->url($seoConfig['og_image_path'] ?? null)
+            ?? (is_string($seoConfig['og_image_url'] ?? null) ? $seoConfig['og_image_url'] : null);
 
         $payload = [
             'id' => $category->id,
@@ -358,8 +407,17 @@ final readonly class OnlineResourceService
             'name' => $category->name,
             'slug' => $category->slug,
             'description' => $category->description,
+            'hero_tagline' => $category->hero_tagline,
+            'banner_url' => $this->media->url($category->banner_path),
             'icon' => $category->icon,
             'accent_color' => $category->accent_color,
+            'design_mode' => $category->design_mode ?: 'inherit',
+            'design_config' => is_array($category->design_config)
+                ? $this->themes->sanitizeDesignConfig($category->design_config)
+                : null,
+            'seo_config' => array_merge($seoConfig, [
+                'resolved_og_image_url' => $seoOgImageUrl,
+            ]),
             'visibility' => $category->visibility->value,
             'visibility_label' => $category->visibility->label(),
             'audience' => $category->audience->value,
@@ -367,6 +425,7 @@ final readonly class OnlineResourceService
             'sort_order' => $category->sort_order,
             'is_active' => $category->is_active,
             'qr_url' => $this->qr->categoryUrl($category),
+            'page_url' => $this->qr->categoryPageUrl($category, $owner),
             'links_count' => $links->count(),
             'links' => $links->map(fn (OnlineResourceLink $link): array => $this->serializeLink($link, $includeAdminMeta, $category))->values()->all(),
         ];
@@ -383,6 +442,12 @@ final readonly class OnlineResourceService
             $payload['poster_pdf_url'] = $category->owner_type === 'class'
                 ? route('faculty.classes.resources.categories.poster.pdf', ['class' => $category->owner_id, 'category' => $category->id])
                 : route('administrators.online-resources.categories.poster.pdf', ['category' => $category->id]);
+            $payload['media_upload_url'] = $category->owner_type === 'class'
+                ? route('faculty.classes.resources.categories.media.store', ['class' => $category->owner_id, 'category' => $category->id])
+                : route('administrators.online-resources.categories.media.store', ['category' => $category->id]);
+            $payload['media_delete_url'] = $category->owner_type === 'class'
+                ? route('faculty.classes.resources.categories.media.destroy', ['class' => $category->owner_id, 'category' => $category->id, 'slot' => '__SLOT__'])
+                : route('administrators.online-resources.categories.media.destroy', ['category' => $category->id, 'slot' => '__SLOT__']);
         }
 
         return $payload;
@@ -454,6 +519,7 @@ final readonly class OnlineResourceService
                 category: $category,
                 onlyActiveLinks: $onlyActive,
                 includeAdminMeta: $includeAdminMeta,
+                owner: $owner,
             ))
             ->values()
             ->all();

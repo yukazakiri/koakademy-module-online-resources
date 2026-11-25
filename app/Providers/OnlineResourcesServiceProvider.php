@@ -12,10 +12,13 @@ use Modules\OnlineResources\Models\OnlineResourceCategory;
 use Modules\OnlineResources\Policies\OnlineResourceCategoryPolicy;
 use Modules\OnlineResources\Scopes\ClassResourceScope;
 use Modules\OnlineResources\Scopes\SchoolResourceScope;
+use Modules\OnlineResources\Services\OnlineResourceMediaService;
 use Modules\OnlineResources\Services\OnlineResourceMetadataService;
 use Modules\OnlineResources\Services\OnlineResourceQrService;
 use Modules\OnlineResources\Services\OnlineResourceScopeRegistry;
+use Modules\OnlineResources\Services\OnlineResourceSeoService;
 use Modules\OnlineResources\Services\OnlineResourceService;
+use Modules\OnlineResources\Services\OnlineResourceThemeService;
 
 final class OnlineResourcesServiceProvider extends ServiceProvider
 {
@@ -38,8 +41,11 @@ final class OnlineResourcesServiceProvider extends ServiceProvider
             return $registry;
         });
 
+        $this->app->singleton(OnlineResourceMediaService::class);
         $this->app->singleton(OnlineResourceMetadataService::class);
         $this->app->singleton(OnlineResourceQrService::class);
+        $this->app->singleton(OnlineResourceThemeService::class);
+        $this->app->singleton(OnlineResourceSeoService::class);
         $this->app->singleton(OnlineResourceService::class);
 
         $this->app->register(RouteServiceProvider::class);

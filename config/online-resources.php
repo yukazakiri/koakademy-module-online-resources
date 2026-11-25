@@ -5,6 +5,8 @@ declare(strict_types=1);
 return [
     'default_visibility' => 'public',
 
+    'media_disk' => env('ONLINE_RESOURCES_MEDIA_DISK'),
+
     'prefixes' => [
         'qr' => 'q',
         'directory' => 'resources',

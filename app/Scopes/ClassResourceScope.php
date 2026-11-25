@@ -152,7 +152,8 @@ final class ClassResourceScope implements OnlineResourceScopeHandler
             'badge' => 'Class Resources',
             'school_name' => $schoolName,
             'school_code' => $schoolCode,
-            'hub_url' => $schoolCode !== null
+            'hub_url' => route('online-resources.class-directory', ['class' => $owner->id]),
+            'school_hub_url' => $schoolCode !== null
                 ? route('online-resources.directory', ['schoolCode' => $schoolCode])
                 : null,
         ];

@@ -16,6 +16,7 @@ abstract class TestCase extends OrchestraTestCase
     {
         parent::setUp();
 
+        Schema::dropIfExists('online_resource_hub_settings');
         Schema::dropIfExists('online_resource_links');
         Schema::dropIfExists('online_resource_categories');
         Schema::dropIfExists('users');
