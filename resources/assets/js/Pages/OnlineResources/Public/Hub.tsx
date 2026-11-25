@@ -1,14 +1,21 @@
-import { ResourceDirectoryView } from "../../../components/resource-directory-view";
-import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import type { OnlineResourceCategoryItem, OnlineResourceHeaderMeta } from "../../../types";
-import { Head, Link } from "@inertiajs/react";
-import { Check, ExternalLink, LogIn, QrCode, School, Share2 } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
+import { PublicHubRenderer } from "../../../components/public-hub-renderer";
+import { DEFAULT_DESIGN_CONFIG } from "../../../components/hub-themes";
+import type {
+    OnlineResourceCategoryItem,
+    OnlineResourceDesignConfig,
+    OnlineResourceHeaderMeta,
+    OnlineResourceHubSettings,
+    OnlineResourceResolvedSeo,
+} from "../../../types";
+import { Head } from "@inertiajs/react";
 
 interface PublicOnlineResourcesHubProps {
+    viewMode?: "hub" | "category";
     headerMeta: OnlineResourceHeaderMeta;
+    hubSettings?: OnlineResourceHubSettings | null;
+    resolvedDesign?: OnlineResourceDesignConfig | null;
+    seo?: OnlineResourceResolvedSeo | null;
+    activeCategory?: OnlineResourceCategoryItem | null;
     focusedCategoryId: number | null;
     categories: OnlineResourceCategoryItem[];
     hubUrl: string | null;
@@ -17,151 +24,76 @@ interface PublicOnlineResourcesHubProps {
 }
 
 export default function PublicOnlineResourcesHub({
+    viewMode,
     headerMeta,
+    hubSettings,
+    resolvedDesign,
+    seo,
+    activeCategory,
     focusedCategoryId,
     categories,
     hubUrl,
     isAuthenticated,
     portalUrl,
 }: PublicOnlineResourcesHubProps) {
-    const [copied, setCopied] = useState(false);
-
-    const handleSharePage = async () => {
-        const shareUrl = window.location.href;
-
-        if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-            try {
-                await navigator.share({
-                    title: `${headerMeta.title} — ${headerMeta.school_name}`,
-                    text: headerMeta.subtitle ?? `Online resources from ${headerMeta.school_name}`,
-                    url: shareUrl,
-                });
-                return;
-            } catch (error) {
-                if (error instanceof DOMException && error.name === "AbortError") {
-                    return;
-                }
-            }
-        }
-
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            setCopied(true);
-            toast.success("Page link copied");
-            window.setTimeout(() => setCopied(false), 1800);
-        } catch {
-            toast.error("Could not copy link");
-        }
+    const fallbackHubSettings: OnlineResourceHubSettings = hubSettings ?? {
+        exists: false,
+        visibility: "public",
+        is_published: true,
+        headline: null,
+        effective_headline: headerMeta.title,
+        tagline: null,
+        effective_tagline: headerMeta.subtitle,
+        badge_text: null,
+        effective_badge_text: headerMeta.badge,
+        announcement_text: null,
+        announcement_url: null,
+        cta_label: null,
+        cta_url: null,
+        logo_path: null,
+        logo_url: null,
+        banner_path: null,
+        banner_url: null,
+        footer_text: null,
+        design_config: DEFAULT_DESIGN_CONFIG,
+        seo_config: {
+            meta_title: null,
+            meta_description: null,
+            keywords: null,
+            og_title: null,
+            og_description: null,
+            og_image_path: null,
+            og_image_url: null,
+            twitter_card: "summary_large_image",
+            canonical_url: null,
+            robots_index: true,
+            structured_data_enabled: true,
+        },
     };
 
+    const effectiveCategory =
+        activeCategory ?? (focusedCategoryId !== null ? categories.find((c) => c.id === focusedCategoryId) ?? null : null);
+    const effectiveViewMode: "hub" | "category" = viewMode ?? (effectiveCategory ? "category" : "hub");
+    const pageTitle = seo?.title || `${headerMeta.title} — ${headerMeta.school_name}`;
+
     return (
-        <div className="bg-background text-foreground flex min-h-dvh flex-col">
-            <Head title={`${headerMeta.title} — ${headerMeta.school_name}`} />
+        <>
+            <Head title={pageTitle}>
+                {seo?.description && <meta head-key="description" name="description" content={seo.description} />}
+                {seo?.robots && <meta head-key="robots" name="robots" content={seo.robots} />}
+            </Head>
 
-            <a
-                href="#online-resources-main"
-                className="bg-primary text-primary-foreground sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-md"
-            >
-                Skip to resources
-            </a>
-
-            <header className="border-border/70 bg-card/85 sticky top-0 z-20 border-b backdrop-blur-md">
-                <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                        <div className="bg-primary/12 text-primary flex size-9 shrink-0 items-center justify-center rounded-xl">
-                            <School className="size-5" aria-hidden="true" />
-                        </div>
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold leading-tight">{headerMeta.school_name}</p>
-                            <p className="text-muted-foreground truncate text-xs">{headerMeta.badge}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            aria-label={copied ? "Page link copied" : "Share this page"}
-                            className="min-h-10 gap-1.5 rounded-full text-xs sm:min-h-8"
-                            onClick={() => void handleSharePage()}
-                        >
-                            {copied ? (
-                                <Check className="size-3.5 text-emerald-600" aria-hidden="true" />
-                            ) : (
-                                <Share2 className="size-3.5" aria-hidden="true" />
-                            )}
-                            <span className="hidden sm:inline">{copied ? "Copied" : "Share"}</span>
-                        </Button>
-
-                        {isAuthenticated ? (
-                            <Link
-                                href={portalUrl || "/student/resources"}
-                                className={buttonVariants({ size: "sm", className: "min-h-10 gap-1.5 rounded-full text-xs sm:min-h-8" })}
-                            >
-                                <ExternalLink className="size-3.5" aria-hidden="true" />
-                                Portal
-                            </Link>
-                        ) : (
-                            <Link
-                                href="/login"
-                                className={buttonVariants({ size: "sm", variant: "secondary", className: "min-h-10 gap-1.5 rounded-full text-xs sm:min-h-8" })}
-                            >
-                                <LogIn className="size-3.5" aria-hidden="true" />
-                                Sign In
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            </header>
-
-            <main id="online-resources-main" className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-                <section className="from-primary/8 via-card to-card border-border/70 relative overflow-hidden rounded-3xl border bg-gradient-to-br p-5 sm:p-7">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="space-y-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="secondary" className="gap-1 rounded-full">
-                                    <QrCode className="size-3" />
-                                    {headerMeta.badge}
-                                </Badge>
-                                {headerMeta.school_code && (
-                                    <Badge variant="outline" className="rounded-full font-mono text-[11px]">
-                                        {headerMeta.school_code}
-                                    </Badge>
-                                )}
-                            </div>
-                            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{headerMeta.title}</h1>
-                            {headerMeta.subtitle && (
-                                <p className="text-muted-foreground max-w-2xl text-sm sm:text-base">{headerMeta.subtitle}</p>
-                            )}
-                        </div>
-
-                        {hubUrl && focusedCategoryId !== null && (
-                            <a
-                                href={hubUrl}
-                                className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit gap-1.5 rounded-full" })}
-                            >
-                                View Full School Directory
-                            </a>
-                        )}
-                    </div>
-                </section>
-
-                <ResourceDirectoryView
-                    categories={categories}
-                    initialCategoryId={focusedCategoryId}
-                    storageKey={headerMeta.school_code ? `public:${headerMeta.school_code}` : "public"}
-                    emptyTitle="No published resources available"
-                    emptyDescription="There are no active resource links visible in this directory right now."
-                />
-            </main>
-
-            <footer className="border-border/60 text-muted-foreground mt-auto border-t py-4 text-center text-xs">
-                <div className="mx-auto flex max-w-5xl items-center justify-between px-4 sm:px-6">
-                    <span>{headerMeta.school_name}</span>
-                    <span>Online Resources Hub</span>
-                </div>
-            </footer>
-        </div>
+            <PublicHubRenderer
+                viewMode={effectiveViewMode}
+                headerMeta={headerMeta}
+                hubSettings={fallbackHubSettings}
+                resolvedDesign={resolvedDesign ?? fallbackHubSettings.design_config}
+                activeCategory={effectiveCategory}
+                categories={categories}
+                hubUrl={hubUrl}
+                isAuthenticated={isAuthenticated}
+                portalUrl={portalUrl}
+            />
+        </>
     );
 }
