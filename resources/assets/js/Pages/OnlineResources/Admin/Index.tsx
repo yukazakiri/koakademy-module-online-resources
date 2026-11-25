@@ -1,11 +1,12 @@
 import AdminLayout from "@/components/administrators/admin-layout";
+import { ResourceHubCustomizerDialog } from "../../../components/resource-hub-customizer-dialog";
 import { ResourceHubManager } from "../../../components/resource-hub-manager";
 import { ResourceQrDialog } from "../../../components/resource-qr-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import type { OnlineResourceCategoryItem, OnlineResourceHeaderMeta } from "../../../types";
+import type { OnlineResourceCategoryItem, OnlineResourceHeaderMeta, OnlineResourceHubSettings } from "../../../types";
 import { Head } from "@inertiajs/react";
-import { ExternalLink, FileDown, FolderOpen, Link2, MousePointerClick, QrCode } from "lucide-react";
+import { ExternalLink, FileDown, FolderOpen, Link2, MousePointerClick, Palette, QrCode } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface AdministratorOnlineResourcesPageProps {
@@ -17,8 +18,10 @@ interface AdministratorOnlineResourcesPageProps {
     headerMeta: OnlineResourceHeaderMeta;
     canManage: boolean;
     categories: OnlineResourceCategoryItem[];
+    hubSettings?: OnlineResourceHubSettings | null;
     hub: {
         url: string;
+        sitemap_url?: string | null;
         qr_svg_url: string;
         qr_png_url: string;
         sheet_pdf_url: string;
@@ -30,9 +33,11 @@ export default function AdministratorOnlineResourcesIndex({
     headerMeta,
     canManage,
     categories,
+    hubSettings,
     hub,
 }: AdministratorOnlineResourcesPageProps) {
     const [hubQrOpen, setHubQrOpen] = useState(false);
+    const [customizerOpen, setCustomizerOpen] = useState(false);
 
     const stats = useMemo(() => {
         const totalLinks = categories.reduce((sum, category) => sum + category.links.length, 0);
@@ -62,6 +67,15 @@ export default function AdministratorOnlineResourcesIndex({
         [],
     );
 
+    const hubCustomizerEndpoints = useMemo(
+        () => ({
+            updateHubSettings: "/administrators/online-resources/hub-settings",
+            uploadHubMedia: "/administrators/online-resources/hub-settings/media",
+            deleteHubMedia: (slot: "logo" | "banner" | "og_image") => `/administrators/online-resources/hub-settings/media/${slot}`,
+        }),
+        [],
+    );
+
     return (
         <AdminLayout title="Online Resources">
             <Head title="Online Resources" />
@@ -77,14 +91,35 @@ export default function AdministratorOnlineResourcesIndex({
                             <Badge variant="outline" className="rounded-full font-mono text-[11px]">
                                 {school.code}
                             </Badge>
+                            {hubSettings && (
+                                <Badge variant="outline" className="rounded-full text-[11px]">
+                                    {hubSettings.is_published
+                                        ? hubSettings.visibility === "public"
+                                            ? "Public Website"
+                                            : "Campus Login Required"
+                                        : "Unpublished Draft"}
+                                </Badge>
+                            )}
                         </div>
                         <h1 className="text-2xl font-bold tracking-tight">Online Resources</h1>
                         <p className="text-muted-foreground max-w-2xl text-sm">
-                            Curate categorized web links for {school.name} and generate permanent QR codes for classrooms, bulletin boards, and student handbooks.
+                            Curate categorized web links for {school.name}, customize the public website layout & SEO, and generate permanent QR codes.
                         </p>
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {canManage && hubSettings && (
+                            <Button
+                                type="button"
+                                size="sm"
+                                className="gap-1.5 rounded-xl"
+                                onClick={() => setCustomizerOpen(true)}
+                            >
+                                <Palette className="size-4" />
+                                Customize Website & SEO
+                            </Button>
+                        )}
+
                         <Button type="button" variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => setHubQrOpen(true)}>
                             <QrCode className="size-4" />
                             Master Hub QR
@@ -125,7 +160,7 @@ export default function AdministratorOnlineResourcesIndex({
                     canManage={canManage}
                     endpoints={endpoints}
                     emptyStateTitle="No school online resource categories yet"
-                    emptyStateDescription="Create categories such as Library Databases, Student Forms, or LMS Portals. Every category gets a permanent QR code that defaults to instant public access."
+                    emptyStateDescription="Create categories such as Library Databases, Student Forms, or LMS Portals. Every category gets a permanent QR code and customizable webpage."
                 />
             </div>
 
@@ -140,6 +175,20 @@ export default function AdministratorOnlineResourcesIndex({
                 pngUrl={hub.qr_png_url}
                 posterPdfUrl={hub.sheet_pdf_url}
             />
+
+            {canManage && hubSettings && (
+                <ResourceHubCustomizerDialog
+                    open={customizerOpen}
+                    onOpenChange={setCustomizerOpen}
+                    scope="school"
+                    headerMeta={headerMeta}
+                    hubSettings={hubSettings}
+                    categories={categories}
+                    hubUrl={hub.url}
+                    sitemapUrl={hub.sitemap_url}
+                    endpoints={hubCustomizerEndpoints}
+                />
+            )}
         </AdminLayout>
     );
 }

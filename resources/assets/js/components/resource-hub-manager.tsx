@@ -20,12 +20,14 @@ import {
     ArrowUp,
     ArrowUpRight,
     CheckCircle2,
+    ExternalLink,
     EyeOff,
     FolderPlus,
     Globe,
     Link2,
     Lock,
     MousePointerClick,
+    Palette,
     Pencil,
     Plus,
     QrCode,
@@ -78,6 +80,7 @@ export function ResourceHubManager({
     const [submitting, setSubmitting] = useState(false);
 
     const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+    const [categoryDialogTab, setCategoryDialogTab] = useState<"general" | "design" | "seo">("general");
     const [editingCategory, setEditingCategory] = useState<OnlineResourceCategoryItem | null>(null);
     const [deletingCategory, setDeletingCategory] = useState<OnlineResourceCategoryItem | null>(null);
 
@@ -121,11 +124,13 @@ export function ResourceHubManager({
 
     const openCreateCategory = () => {
         setEditingCategory(null);
+        setCategoryDialogTab("general");
         setCategoryDialogOpen(true);
     };
 
-    const openEditCategory = (category: OnlineResourceCategoryItem) => {
+    const openEditCategory = (category: OnlineResourceCategoryItem, tab: "general" | "design" | "seo" = "general") => {
         setEditingCategory(category);
+        setCategoryDialogTab(tab);
         setCategoryDialogOpen(true);
     };
 
@@ -379,6 +384,12 @@ export function ResourceHubManager({
                                                         Hidden
                                                     </Badge>
                                                 )}
+                                                {category.design_mode === "custom" && (
+                                                    <Badge variant="outline" className="gap-1 rounded-full text-[11px]">
+                                                        <Palette className="size-3" />
+                                                        Custom Page
+                                                    </Badge>
+                                                )}
                                             </div>
                                             {category.description && (
                                                 <p className="text-muted-foreground text-xs leading-relaxed sm:text-sm">
@@ -406,6 +417,20 @@ export function ResourceHubManager({
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-1.5 self-start">
+                                        {category.page_url && (
+                                            <a
+                                                href={category.page_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Open dedicated category webpage"
+                                                aria-label={`Open ${category.name} webpage`}
+                                                className="border-border/80 bg-background hover:bg-muted inline-flex h-8 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium transition-colors"
+                                            >
+                                                <ExternalLink className="size-3.5" aria-hidden="true" />
+                                                <span className="hidden sm:inline">Page</span>
+                                            </a>
+                                        )}
+
                                         {category.qr_svg_url && category.qr_png_url && (
                                             <Button
                                                 type="button"
@@ -476,9 +501,21 @@ export function ResourceHubManager({
                                                     variant="ghost"
                                                     size="icon"
                                                     className="size-8 rounded-lg"
+                                                    title="Customize category design & SEO"
+                                                    aria-label={`Customize ${category.name} design and SEO`}
+                                                    onClick={() => openEditCategory(category, "design")}
+                                                >
+                                                    <Palette className="size-3.5" aria-hidden="true" />
+                                                </Button>
+
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="size-8 rounded-lg"
                                                     title="Edit category"
                                                     aria-label={`Edit ${category.name}`}
-                                                    onClick={() => openEditCategory(category)}
+                                                    onClick={() => openEditCategory(category, "general")}
                                                 >
                                                     <Pencil className="size-3.5" aria-hidden="true" />
                                                 </Button>
@@ -684,6 +721,7 @@ export function ResourceHubManager({
                 onOpenChange={setCategoryDialogOpen}
                 scope={scope}
                 category={editingCategory}
+                initialTab={categoryDialogTab}
                 submitting={submitting}
                 onSubmit={handleCategorySubmit}
             />
