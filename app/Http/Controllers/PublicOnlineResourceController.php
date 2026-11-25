@@ -6,6 +6,7 @@ namespace Modules\OnlineResources\Http\Controllers;
 
 use App\Models\School;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -107,6 +108,52 @@ final class PublicOnlineResourceController extends Controller
         }
 
         return $this->redirectToLink($request, $link);
+    }
+
+    public function reportBroken(Request $request, string $shortCode): JsonResponse
+    {
+        $link = OnlineResourceLink::withoutSchoolScope()
+            ->with('category')
+            ->where('short_code', $shortCode)
+            ->first();
+
+        if (! $link instanceof OnlineResourceLink) {
+            abort(404);
+        }
+
+        $category = $link->category;
+
+        if (! $link->is_active || ! $category instanceof OnlineResourceCategory || ! $category->is_active) {
+            abort(404);
+        }
+
+        $owner = $this->scopes->resolveOwner($category);
+        if ($owner === null) {
+            abort(404);
+        }
+
+        $handler = $this->scopes->forCategory($category);
+        if (! $handler->isEnabledForOwner($owner)) {
+            abort(404);
+        }
+
+        $user = $request->user();
+        $viewer = $user instanceof Authenticatable ? $user : null;
+
+        if (! $handler->canView($viewer, $owner, $category)) {
+            abort(403, 'You do not have permission to report this resource link.');
+        }
+
+        OnlineResourceLink::withoutSchoolScope()
+            ->whereKey($link->id)
+            ->increment('broken_report_count', 1, [
+                'last_reported_broken_at' => now(),
+            ]);
+
+        return response()->json([
+            'reported' => true,
+            'broken_report_count' => (int) ($link->fresh()?->broken_report_count ?? ($link->broken_report_count + 1)),
+        ]);
     }
 
     private function renderCategoryHub(Request $request, OnlineResourceCategory $category): Response|RedirectResponse

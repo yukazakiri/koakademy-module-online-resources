@@ -195,6 +195,21 @@ final class AdministratorOnlineResourceController extends Controller
             ->with('status', 'Online resource link deleted.');
     }
 
+    public function clearLinkBrokenReport(Request $request, int $link): RedirectResponse
+    {
+        $user = $this->requireUser($request);
+        $school = $this->resolveActiveSchool($user);
+
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $school]);
+
+        $linkModel = $this->findSchoolLink($school, $link);
+        $this->service->clearBrokenReports($linkModel);
+
+        return redirect()
+            ->back()
+            ->with('status', 'Broken link report cleared.');
+    }
+
     public function reorderLinks(ReorderOnlineResourcesRequest $request, int $category): RedirectResponse
     {
         $user = $this->requireUser($request);

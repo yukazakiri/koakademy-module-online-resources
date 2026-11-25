@@ -30,6 +30,10 @@ $studentMiddleware = $isKoAkademyHost
     : ['auth'];
 
 // Public / Hybrid QR & Directory Routes
+Route::post("/{$qrPrefix}/report/{shortCode}", [PublicOnlineResourceController::class, 'reportBroken'])
+    ->middleware('throttle:10,1')
+    ->name('online-resources.qr.report-broken');
+
 Route::get("/{$qrPrefix}/go/{shortCode}", [PublicOnlineResourceController::class, 'go'])
     ->middleware('throttle:120,1')
     ->name('online-resources.qr.go');
@@ -59,6 +63,7 @@ Route::middleware($adminMiddleware)
 
         Route::post('/categories/{category}/links', [AdministratorOnlineResourceController::class, 'storeLink'])->name('links.store');
         Route::put('/links/{link}', [AdministratorOnlineResourceController::class, 'updateLink'])->name('links.update');
+        Route::post('/links/{link}/clear-broken-report', [AdministratorOnlineResourceController::class, 'clearLinkBrokenReport'])->name('links.clear-broken-report');
         Route::delete('/links/{link}', [AdministratorOnlineResourceController::class, 'destroyLink'])->name('links.destroy');
         Route::patch('/categories/{category}/links/reorder', [AdministratorOnlineResourceController::class, 'reorderLinks'])->name('links.reorder');
 
@@ -88,6 +93,7 @@ Route::middleware($facultyMiddleware)
 
         Route::post('/categories/{category}/links', [FacultyClassOnlineResourceController::class, 'storeLink'])->name('links.store');
         Route::put('/links/{link}', [FacultyClassOnlineResourceController::class, 'updateLink'])->name('links.update');
+        Route::post('/links/{link}/clear-broken-report', [FacultyClassOnlineResourceController::class, 'clearLinkBrokenReport'])->name('links.clear-broken-report');
         Route::delete('/links/{link}', [FacultyClassOnlineResourceController::class, 'destroyLink'])->name('links.destroy');
         Route::patch('/categories/{category}/links/reorder', [FacultyClassOnlineResourceController::class, 'reorderLinks'])->name('links.reorder');
 

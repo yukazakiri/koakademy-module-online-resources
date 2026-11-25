@@ -178,3 +178,38 @@ export function inferResourceIconFromUrl(rawUrl: string): string | null {
         return null;
     }
 }
+
+export function detectResourceTypeLabel(rawUrl: string): string | null {
+    try {
+        const parsed = new URL(rawUrl.trim());
+        const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+        const path = parsed.pathname.toLowerCase();
+
+        if (host === "docs.google.com") {
+            if (path.startsWith("/document")) return "Google Docs";
+            if (path.startsWith("/spreadsheets")) return "Google Sheets";
+            if (path.startsWith("/presentation")) return "Google Slides";
+            if (path.startsWith("/forms")) return "Google Forms";
+            return "Google Docs";
+        }
+        if (host === "drive.google.com") return "Google Drive";
+        if (host === "forms.gle") return "Google Forms";
+        if (host === "youtube.com" || host === "m.youtube.com" || host === "youtu.be" || host === "vimeo.com" || host === "loom.com") {
+            return "Video";
+        }
+        if (host === "meet.google.com" || host === "zoom.us" || host.endsWith(".zoom.us")) return "Meeting";
+        if (host === "github.com" || host === "gitlab.com") return "GitHub";
+        if (host === "canva.com") return "Canva";
+        if (host === "figma.com") return "Figma";
+        if (host === "notion.so" || host === "notion.site") return "Notion";
+
+        if (/\.pdf$/i.test(path)) return "PDF";
+        if (/\.docx?$/i.test(path)) return "Document";
+        if (/\.pptx?$/i.test(path)) return "Slides";
+        if (/\.(xlsx?|csv)$/i.test(path)) return "Spreadsheet";
+
+        return null;
+    } catch {
+        return null;
+    }
+}

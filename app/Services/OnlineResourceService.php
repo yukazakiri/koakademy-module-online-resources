@@ -226,7 +226,13 @@ final readonly class OnlineResourceService
         }
 
         if (array_key_exists('url', $data)) {
-            $updates['url'] = mb_trim((string) $data['url']);
+            $nextUrl = mb_trim((string) $data['url']);
+            $updates['url'] = $nextUrl;
+
+            if ($nextUrl !== $link->url && $link->broken_report_count > 0) {
+                $updates['broken_report_count'] = 0;
+                $updates['last_reported_broken_at'] = null;
+            }
         }
 
         if (array_key_exists('description', $data)) {
@@ -264,6 +270,16 @@ final readonly class OnlineResourceService
     public function deleteLink(OnlineResourceLink $link): void
     {
         $link->delete();
+    }
+
+    public function clearBrokenReports(OnlineResourceLink $link): OnlineResourceLink
+    {
+        $link->update([
+            'broken_report_count' => 0,
+            'last_reported_broken_at' => null,
+        ]);
+
+        return $link->fresh() ?? $link;
     }
 
     /**
@@ -392,6 +408,7 @@ final readonly class OnlineResourceService
             'is_featured' => $link->is_featured,
             'is_active' => $link->is_active,
             'opens_in_new_tab' => $link->opens_in_new_tab,
+            'report_broken_url' => route('online-resources.qr.report-broken', ['shortCode' => $link->short_code]),
         ];
 
         if ($includeAdminMeta) {
@@ -400,6 +417,8 @@ final readonly class OnlineResourceService
 
             $payload['click_count'] = $link->click_count;
             $payload['last_clicked_at'] = $link->last_clicked_at?->toIso8601String();
+            $payload['broken_report_count'] = $link->broken_report_count;
+            $payload['last_reported_broken_at'] = $link->last_reported_broken_at?->toIso8601String();
             $payload['qr_url'] = $this->qr->directLinkQrUrl($link);
             $payload['qr_svg_url'] = $isClassScope
                 ? route('faculty.classes.resources.links.qr.svg', ['class' => $ownerCategory->owner_id, 'link' => $link->id])
@@ -407,6 +426,9 @@ final readonly class OnlineResourceService
             $payload['qr_png_url'] = $isClassScope
                 ? route('faculty.classes.resources.links.qr.png', ['class' => $ownerCategory->owner_id, 'link' => $link->id])
                 : route('administrators.online-resources.links.qr.png', ['link' => $link->id]);
+            $payload['clear_broken_report_url'] = $isClassScope
+                ? route('faculty.classes.resources.links.clear-broken-report', ['class' => $ownerCategory->owner_id, 'link' => $link->id])
+                : route('administrators.online-resources.links.clear-broken-report', ['link' => $link->id]);
         }
 
         return $payload;

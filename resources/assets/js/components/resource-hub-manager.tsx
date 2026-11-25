@@ -15,9 +15,11 @@ import { cn } from "@/lib/utils";
 import type { OnlineResourceCategoryItem, OnlineResourceLinkItem, OnlineResourceScope } from "../types";
 import { router } from "@inertiajs/react";
 import {
+    AlertTriangle,
     ArrowDown,
     ArrowUp,
     ArrowUpRight,
+    CheckCircle2,
     EyeOff,
     FolderPlus,
     Globe,
@@ -248,10 +250,44 @@ export function ResourceHubManager({
         );
     };
 
+    const handleClearBrokenReport = (link: OnlineResourceLinkItem) => {
+        if (!link.clear_broken_report_url) return;
+        router.post(
+            link.clear_broken_report_url,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => toast.success("Broken link report cleared"),
+                onError: () => toast.error("Could not clear broken link report"),
+            },
+        );
+    };
+
+    const reportedBrokenCount = useMemo(
+        () =>
+            categories.reduce(
+                (sum, category) => sum + category.links.filter((link) => (link.broken_report_count ?? 0) > 0).length,
+                0,
+            ),
+        [categories],
+    );
+
     const isSearching = searchQuery.trim() !== "";
 
     return (
         <div className="space-y-4">
+            {reportedBrokenCount > 0 && (
+                <div
+                    role="status"
+                    className="border-amber-500/35 bg-amber-500/10 flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
+                >
+                    <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                    <span>
+                        <strong className="font-semibold tabular-nums">{reportedBrokenCount}</strong>{" "}
+                        {reportedBrokenCount === 1 ? "link has" : "links have"} been reported as broken by viewers. Update the URL or mark as fixed once verified.
+                    </span>
+                </div>
+            )}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="relative flex-1 sm:max-w-sm">
                     <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden="true" />
@@ -516,6 +552,15 @@ export function ResourceHubManager({
                                                                 Inactive
                                                             </Badge>
                                                         )}
+                                                        {(link.broken_report_count ?? 0) > 0 && (
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="h-5 gap-1 rounded-full border-amber-500/40 bg-amber-500/10 px-2 text-[10px] text-amber-700 dark:text-amber-300"
+                                                            >
+                                                                <AlertTriangle className="size-2.5" aria-hidden="true" />
+                                                                Reported broken ({link.broken_report_count})
+                                                            </Badge>
+                                                        )}
                                                     </div>
 
                                                     {link.description && (
@@ -532,6 +577,20 @@ export function ResourceHubManager({
                                                 </div>
 
                                                 <div className="flex shrink-0 items-center gap-1">
+                                                    {canManage && (link.broken_report_count ?? 0) > 0 && link.clear_broken_report_url && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 gap-1 rounded-lg px-2 text-[11px]"
+                                                            title="Clear broken link report"
+                                                            aria-label={`Mark ${link.title} as fixed`}
+                                                            onClick={() => handleClearBrokenReport(link)}
+                                                        >
+                                                            <CheckCircle2 className="size-3 text-emerald-600" aria-hidden="true" />
+                                                            Mark fixed
+                                                        </Button>
+                                                    )}
                                                     {link.qr_url && link.qr_svg_url && link.qr_png_url && (
                                                         <Button
                                                             type="button"

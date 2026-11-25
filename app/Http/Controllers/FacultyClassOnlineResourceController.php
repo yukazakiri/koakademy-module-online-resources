@@ -142,6 +142,19 @@ final class FacultyClassOnlineResourceController extends Controller
             ->with('flash', ['success' => 'Class resource link deleted.']);
     }
 
+    public function clearLinkBrokenReport(Request $request, Classes $class, int $link): RedirectResponse
+    {
+        $user = $this->requireUser($request);
+        Gate::forUser($user)->authorize('manageForOwner', [OnlineResourceCategory::class, $class]);
+
+        $linkModel = $this->findClassLink($class, $link);
+        $this->service->clearBrokenReports($linkModel);
+
+        return redirect()
+            ->back()
+            ->with('flash', ['success' => 'Broken link report cleared.']);
+    }
+
     public function reorderLinks(ReorderOnlineResourcesRequest $request, Classes $class, int $category): RedirectResponse
     {
         $user = $this->requireUser($request);

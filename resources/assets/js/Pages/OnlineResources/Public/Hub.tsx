@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { OnlineResourceCategoryItem, OnlineResourceHeaderMeta } from "../../../types";
 import { Head, Link } from "@inertiajs/react";
-import { Check, Copy, ExternalLink, LogIn, QrCode, School } from "lucide-react";
+import { Check, ExternalLink, LogIn, QrCode, School, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -26,9 +26,25 @@ export default function PublicOnlineResourcesHub({
 }: PublicOnlineResourcesHubProps) {
     const [copied, setCopied] = useState(false);
 
-    const handleCopyLink = async () => {
+    const handleSharePage = async () => {
+        const shareUrl = window.location.href;
+
+        if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+            try {
+                await navigator.share({
+                    title: `${headerMeta.title} — ${headerMeta.school_name}`,
+                    text: headerMeta.subtitle ?? `Online resources from ${headerMeta.school_name}`,
+                    url: shareUrl,
+                });
+                return;
+            } catch (error) {
+                if (error instanceof DOMException && error.name === "AbortError") {
+                    return;
+                }
+            }
+        }
+
         try {
-            const shareUrl = window.location.href;
             await navigator.clipboard.writeText(shareUrl);
             setCopied(true);
             toast.success("Page link copied");
@@ -68,9 +84,13 @@ export default function PublicOnlineResourcesHub({
                             size="sm"
                             aria-label={copied ? "Page link copied" : "Share this page"}
                             className="min-h-10 gap-1.5 rounded-full text-xs sm:min-h-8"
-                            onClick={handleCopyLink}
+                            onClick={() => void handleSharePage()}
                         >
-                            {copied ? <Check className="size-3.5 text-emerald-600" aria-hidden="true" /> : <Copy className="size-3.5" aria-hidden="true" />}
+                            {copied ? (
+                                <Check className="size-3.5 text-emerald-600" aria-hidden="true" />
+                            ) : (
+                                <Share2 className="size-3.5" aria-hidden="true" />
+                            )}
                             <span className="hidden sm:inline">{copied ? "Copied" : "Share"}</span>
                         </Button>
 
@@ -130,6 +150,7 @@ export default function PublicOnlineResourcesHub({
                 <ResourceDirectoryView
                     categories={categories}
                     initialCategoryId={focusedCategoryId}
+                    storageKey={headerMeta.school_code ? `public:${headerMeta.school_code}` : "public"}
                     emptyTitle="No published resources available"
                     emptyDescription="There are no active resource links visible in this directory right now."
                 />

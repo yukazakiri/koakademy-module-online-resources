@@ -279,3 +279,55 @@ it('serializes direct single-link QR URLs and supports moving links with custom 
     expect($moved->category_id)->toBe($second->id)
         ->and($moved->icon)->toBe('book');
 });
+
+it('tracks broken link reports, enforces visibility on private categories, and clears reports on URL update or dismissal', function (): void {
+    $service = app(OnlineResourceService::class);
+
+    $publicCat = $service->createCategory($this->school, [
+        'name' => 'Public Links',
+        'visibility' => OnlineResourceVisibility::Public->value,
+    ]);
+    $publicLink = $service->createLink($publicCat, [
+        'title' => 'Old Syllabus',
+        'url' => 'https://syllabus.example.edu/dead',
+    ]);
+
+    $this->postJson(route('online-resources.qr.report-broken', ['shortCode' => $publicLink->short_code]))
+        ->assertSuccessful()
+        ->assertExactJson([
+            'reported' => true,
+            'broken_report_count' => 1,
+        ]);
+
+    expect($publicLink->fresh()->broken_report_count)->toBe(1)
+        ->and($publicLink->fresh()->last_reported_broken_at)->not->toBeNull();
+
+    // Updating the URL automatically clears broken reports.
+    $service->updateLink($publicLink->fresh(), [
+        'url' => 'https://syllabus.example.edu/updated',
+    ]);
+
+    expect($publicLink->fresh()->broken_report_count)->toBe(0)
+        ->and($publicLink->fresh()->last_reported_broken_at)->toBeNull();
+
+    // Reporting again and manually dismissing via clearBrokenReports.
+    $this->postJson(route('online-resources.qr.report-broken', ['shortCode' => $publicLink->short_code]))
+        ->assertSuccessful();
+    expect($publicLink->fresh()->broken_report_count)->toBe(1);
+
+    $service->clearBrokenReports($publicLink->fresh());
+    expect($publicLink->fresh()->broken_report_count)->toBe(0);
+
+    // Guests cannot report links inside authenticated-only categories.
+    $privateCat = $service->createCategory($this->school, [
+        'name' => 'Private Docs',
+        'visibility' => OnlineResourceVisibility::Authenticated->value,
+    ]);
+    $privateLink = $service->createLink($privateCat, [
+        'title' => 'Internal Link',
+        'url' => 'https://intranet.example.edu/doc',
+    ]);
+
+    $this->postJson(route('online-resources.qr.report-broken', ['shortCode' => $privateLink->short_code]))
+        ->assertForbidden();
+});

@@ -30,6 +30,8 @@ use Override;
  * @property bool $opens_in_new_tab
  * @property int $click_count
  * @property Carbon|null $last_clicked_at
+ * @property int $broken_report_count
+ * @property Carbon|null $last_reported_broken_at
  * @property int|null $created_by
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -67,6 +69,8 @@ final class OnlineResourceLink extends Model
         'opens_in_new_tab',
         'click_count',
         'last_clicked_at',
+        'broken_report_count',
+        'last_reported_broken_at',
         'created_by',
     ];
 
@@ -137,6 +141,8 @@ final class OnlineResourceLink extends Model
             'opens_in_new_tab' => 'bool',
             'click_count' => 'int',
             'last_clicked_at' => 'datetime',
+            'broken_report_count' => 'int',
+            'last_reported_broken_at' => 'datetime',
             'created_by' => 'int',
         ];
     }

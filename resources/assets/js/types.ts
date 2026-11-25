@@ -19,11 +19,15 @@ export interface OnlineResourceLinkItem {
     is_featured: boolean;
     is_active: boolean;
     opens_in_new_tab: boolean;
+    report_broken_url?: string;
     click_count?: number;
     last_clicked_at?: string | null;
+    broken_report_count?: number;
+    last_reported_broken_at?: string | null;
     qr_url?: string;
     qr_svg_url?: string;
     qr_png_url?: string;
+    clear_broken_report_url?: string;
 }
 
 export interface OnlineResourceCategoryItem {
