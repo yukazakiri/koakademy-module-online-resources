@@ -269,7 +269,7 @@ final class PublicOnlineResourceController extends Controller
                 ->where('slug', $categorySlug)
                 ->first();
 
-            if (! $category instanceof OnlineResourceCategory) {
+            if (! $category instanceof OnlineResourceCategory || ! $handler->canView($viewer, $owner, $category)) {
                 abort(404);
             }
 

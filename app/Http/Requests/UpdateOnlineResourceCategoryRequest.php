@@ -63,7 +63,7 @@ final class UpdateOnlineResourceCategoryRequest extends FormRequest
             'description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'hero_tagline' => ['sometimes', 'nullable', 'string', 'max:300'],
             'icon' => ['sometimes', 'nullable', 'string', 'max:60'],
-            'accent_color' => ['sometimes', 'nullable', 'string', 'max:40', $accentRule],
+            'accent_color' => ['sometimes', 'nullable', 'string', 'max:40'],
             'design_mode' => ['sometimes', 'string', Rule::in(['inherit', 'custom'])],
             'visibility' => ['sometimes', 'required', 'string', Rule::in(OnlineResourceVisibility::valuesForScope($scopeKey))],
             'audience' => ['sometimes', 'required', 'string', Rule::enum(OnlineResourceAudience::class)],

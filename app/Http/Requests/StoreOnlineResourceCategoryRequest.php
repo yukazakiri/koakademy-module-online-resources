@@ -63,7 +63,7 @@ final class StoreOnlineResourceCategoryRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:500'],
             'hero_tagline' => ['nullable', 'string', 'max:300'],
             'icon' => ['nullable', 'string', 'max:60'],
-            'accent_color' => ['nullable', 'string', 'max:40', $accentRule],
+            'accent_color' => ['nullable', 'string', 'max:40'],
             'design_mode' => ['nullable', 'string', Rule::in(['inherit', 'custom'])],
             'visibility' => ['nullable', 'string', Rule::in(OnlineResourceVisibility::valuesForScope($scopeKey))],
             'audience' => ['nullable', 'string', Rule::enum(OnlineResourceAudience::class)],

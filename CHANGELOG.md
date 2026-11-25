@@ -2,6 +2,17 @@
 
 All notable changes to `koakademy/online-resources` will be documented in this file.
 
+## v1.3.0 - 2026-11-25
+
+### Added
+- **Customizable Public Website Engine (Main Hub + Dedicated Category Hubs + Class Resource Hubs):**
+  - Added polymorphic `online_resource_hub_settings` table and additive category customization/SEO columns (`design_mode`, `hero_tagline`, `banner_path`, `design_config`, `seo_config`).
+  - Added **7 Layout Templates** (`directory`, `minimalist`, `visual_showcase`, `bento`, `link_stack`, `editorial_portal`, `compact_index`) and **7 Client-Token-Linked Design Systems** (`client_default`, `minimalist`, `visual_showcase`, `compact`, `glass_modern`, `editorial_classic`, `high_contrast`) that dynamically derive colors, surfaces, borders, and gradients from the client's configured CSS tokens (`--primary`, `--background`, `--card`, `--border`, `--chart-1`), with optional accent swatch or custom `#RRGGBB` overrides.
+  - Added dedicated **Class Resource Hub Websites** (`/resources/class/{class}` and `/resources/class/{class}/{categorySlug}`) with Master Class Hub QR & PDF sheet exports and full Faculty customization.
+  - Added **Visibility-Enforced Customizable SEO & Dynamic Sitemap (`/resources/sitemap.xml`)**: custom meta titles, descriptions, keywords, Open Graph & Twitter Cards, canonical URLs (`/q/{shortCode}` automatically canonicalizes to human-readable category URLs), and Schema.org JSON-LD (`CollectionPage`, `ItemList`, `BreadcrumbList`). Restricted (`authenticated` / `enrolled_only`), unpublished, or unlisted pages automatically enforce `noindex, nofollow`, `X-Robots-Tag`, `Cache-Control: private, no-store`, and sitemap exclusion.
+  - Added raster-only (JPG/PNG/WebP, SVG-blocked) logo, cover banner, and social OG image upload endpoints for Hubs and Categories.
+  - Added split-screen **Website & SEO Customization Studio** with live Desktop/Mobile preview, Google SERP preview, and Open Graph card preview for both School Admins and Faculty Class Resources.
+
 ## v1.2.0 - 2026-11-25
 
 ### Fixed
